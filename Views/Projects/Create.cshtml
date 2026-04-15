@@ -1,0 +1,27 @@
+@model TaskManager.Models.Project
+
+@{
+    ViewData["Title"] = "Новий проєкт";
+}
+
+<h1>Створити новий проєкт</h1>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Назва проєкту</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Опис (опціонально)</label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Створити</button>
+            <a asp-action="Index" class="btn btn-secondary">Скасувати</a>
+        </form>
+    </div>
+</div>

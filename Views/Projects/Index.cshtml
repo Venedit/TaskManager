@@ -1,0 +1,29 @@
+@model IEnumerable<TaskManager.Models.Project>
+
+@{
+    ViewData["Title"] = "Мої проєкти";
+}
+
+<h1>Мої проєкти</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Створити проєкт</a>
+</p>
+
+<div class="row">
+    @foreach (var item in Model) {
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@item.Name</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Створено: @item.CreatedAt.ToShortDateString()</h6>
+                    <p class="card-text">@item.Description</p>
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                    <a href="#" class="btn btn-sm btn-outline-success">Відкрити</a>
+                    <a href="#" class="btn btn-sm btn-outline-secondary">Налаштування</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
