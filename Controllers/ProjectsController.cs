@@ -50,11 +50,9 @@ public class ProjectsController : Controller
 
             project.CreatedAt = DateTime.UtcNow;
 
-            // Зберігаємо проєкт у БД (це згенерує йому Id)
             _context.Add(project);
             await _context.SaveChangesAsync();
 
-            // ОДРАЗУ робимо творця Власником (Owner)
             var member = new ProjectMember
             {
                 ProjectId = project.Id,
@@ -67,6 +65,29 @@ public class ProjectsController : Controller
 
             return RedirectToAction(nameof(Index));
         }
+        return View(project);
+    }
+
+    // GET: /Projects/Details/5
+    public async Task<IActionResult> Details(int? id)
+    {
+        if (id == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User);
+
+        var project = await _context.Projects
+            .Include(p => p.Tasks)
+            .Include(p => p.Members!)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (project == null) return NotFound();
+
+        var memberRecord = project.Members!.FirstOrDefault(m => m.UserId == userId);
+        if (memberRecord == null) return Forbid();
+
+        ViewBag.UserRole = memberRecord.Role;
+
         return View(project);
     }
 }

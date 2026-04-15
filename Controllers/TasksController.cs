@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
-using TaskStatus = TaskManager.Models.TaskStatus; 
+using TaskStatus = TaskManager.Models.TaskStatus;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace TaskManager.Controllers;
@@ -28,42 +28,67 @@ public class TasksController : Controller
         var tasks = await _context.Tasks
             .Include(t => t.Creator)
             .ToListAsync();
-            
+
         return View(tasks);
     }
 
-    // Сторінка з формою створення задачі (просто віддає порожню форму)
-    public IActionResult Create()
+    // GET: /Tasks/Create?projectId=5
+    public IActionResult Create(int projectId)
     {
+        // Передаємо ID проєкту у форму, щоб вона знала, куди ліпити таску
+        ViewBag.ProjectId = projectId;
+
+        // Вибирати виконавців можна тільки серед учасників ЦЬОГО проєкту
+        var projectMembers = _context.ProjectMembers
+            .Where(pm => pm.ProjectId == projectId)
+            .Select(pm => pm.User);
+
+        ViewData["AssigneeId"] = new SelectList(projectMembers, "Id", "Email");
         return View();
     }
 
-    // Метод, який приймає дані після натискання кнопки "Створити"
     [HttpPost]
-    [ValidateAntiForgeryToken] // Захист від хакерських атак (CSRF)
-    public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority")] TaskItem task)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority,AssigneeId,ProjectId")] TaskItem task)
     {
+        // 1. Вимикаємо перевірку для полів, які ми заповнимо самі, або які є просто об'єктами-зв'язками
+        ModelState.Remove("CreatorId");
+        ModelState.Remove("Creator");
+        ModelState.Remove("Project");
+        ModelState.Remove("Assignee");
+
+        // 2. Тепер перевіряємо, чи валідні решта полів (Назва, Дедлайн тощо)
         if (ModelState.IsValid)
         {
-            // Знаходимо, який користувач зараз онлайн
-            var user = await _userManager.GetUserAsync(User);
-            
-            if (user == null) return Challenge(); // Якщо щось пішло не так з логіном
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Challenge();
 
-            // Заповнюємо системні поля, які користувач не має вводити вручну
-            task.CreatorId = user.Id;
+            task.CreatorId = userId;
             task.CreatedAt = DateTime.UtcNow;
             task.Status = TaskStatus.New;
+            task.Deadline = task.Deadline.ToUniversalTime();
 
             _context.Add(task);
-            await _context.SaveChangesAsync(); // Зберігаємо в PostgreSQL
-            
-            return RedirectToAction(nameof(Index)); // Повертаємо користувача на список задач
+            await _context.SaveChangesAsync();
+
+            // Повертаємося на сторінку проєкту
+            return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
         }
-        return View(task); // Якщо форма заповнена криво, повертаємо її назад з помилками
+
+        // 3. ЯКЩО ФОРМА ЗАПОВНЕНА НЕПРАВИЛЬНО (наприклад, забув назву):
+        // Нам треба наново завантажити випадаючий список виконавців і ID проєкту, 
+        // інакше сторінка впаде при спробі показати форму знову.
+        var projectMembers = _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId)
+            .Select(pm => pm.User);
+
+        ViewData["AssigneeId"] = new SelectList(projectMembers, "Id", "Email", task.AssigneeId);
+        ViewBag.ProjectId = task.ProjectId;
+
+        return View(task);
     }
 
-    // GET: /Tasks/Edit/5 (Віддає форму з поточними даними задачі)
+    // GET: /Tasks/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null) return NotFound();
@@ -71,23 +96,37 @@ public class TasksController : Controller
         var task = await _context.Tasks.FindAsync(id);
         if (task == null) return NotFound();
 
-        // Дістаємо всіх користувачів для випадаючого списку "Виконавець"
-        ViewData["Users"] = new SelectList(_userManager.Users, "Id", "Email", task.AssigneeId);
-        
+        // Завантажуємо ТІЛЬКИ учасників цього проєкту
+        var projectMembers = _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId)
+            .Select(pm => pm.User);
+
+        ViewData["Users"] = new SelectList(projectMembers, "Id", "Email", task.AssigneeId);
+
         return View(task);
     }
 
-    // POST: /Tasks/Edit/5 (Приймає оновлені дані та зберігає в БД)
+    // POST: /Tasks/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Deadline,Priority,Status,CreatorId,AssigneeId,CreatedAt")] TaskItem task)
+    // ВАЖЛИВО: Додали ProjectId у список Bind
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Deadline,Priority,Status,CreatorId,AssigneeId,CreatedAt,ProjectId")] TaskItem task)
     {
         if (id != task.Id) return NotFound();
+
+        // Вимикаємо валідацію об'єктів-зв'язків
+        ModelState.Remove("Creator");
+        ModelState.Remove("Project");
+        ModelState.Remove("Assignee");
 
         if (ModelState.IsValid)
         {
             try
             {
+                // Фікс часу для PostgreSQL
+                task.Deadline = task.Deadline.ToUniversalTime();
+                task.CreatedAt = task.CreatedAt.ToUniversalTime();
+
                 _context.Update(task);
                 await _context.SaveChangesAsync();
             }
@@ -96,11 +135,75 @@ public class TasksController : Controller
                 if (!_context.Tasks.Any(e => e.Id == task.Id)) return NotFound();
                 else throw;
             }
-            return RedirectToAction(nameof(Index));
+            // Після успішного редагування повертаємо на сторінку проєкту!
+            return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
         }
-        
-        // Якщо помилка валідації - повертаємо форму і знову завантажуємо список користувачів
-        ViewData["Users"] = new SelectList(_userManager.Users, "Id", "Email", task.AssigneeId);
+
+        // Якщо помилка - відновлюємо список учасників
+        var projectMembers = _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId)
+            .Select(pm => pm.User);
+
+        ViewData["Users"] = new SelectList(projectMembers, "Id", "Email", task.AssigneeId);
         return View(task);
+    }
+
+    // POST: /Tasks/Claim/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Claim(int id)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User);
+        if (userId == null) return Challenge();
+
+        // Перевіряємо, чи є користувач учасником проєкту (захист від несанкціонованого доступу)
+        var isMember = await _context.ProjectMembers
+            .AnyAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId);
+
+        if (!isMember) return Forbid();
+
+        // Призначаємо задачу на себе
+        task.AssigneeId = userId;
+        // Одразу змінюємо статус на "В процесі", бо ми її взяли в роботу
+        task.Status = TaskStatus.InProgress;
+
+        _context.Update(task);
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
+    }
+
+    // POST: /Tasks/Unclaim/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unclaim(int id)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task == null) return NotFound();
+
+        task.AssigneeId = null; // Прибираємо виконавця
+        task.Status = TaskStatus.New; // Повертаємо статус "Нова"
+
+        _context.Update(task);
+        await _context.SaveChangesAsync();
+        return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
+    }
+
+    // POST: /Tasks/UpdateStatus/5?newStatus=Review
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStatus(int id, TaskStatus newStatus)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task == null) return NotFound();
+
+        task.Status = newStatus;
+
+        _context.Update(task);
+        await _context.SaveChangesAsync();
+        return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
     }
 }

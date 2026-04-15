@@ -1,0 +1,148 @@
+@model TaskManager.Models.Project
+@using TaskManager.Models
+
+@{
+    ViewData["Title"] = Model.Name;
+    var role = (ProjectRole)ViewBag.UserRole;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>@Model.Name</h1>
+        <p class="text-muted">@Model.Description</p>
+    </div>
+    <div>
+        @* ПЕРЕВІРКА РОЛІ: тільки Owner та Manager можуть створювати задачі *@
+        @if (role == ProjectRole.Owner || role == ProjectRole.Manager)
+        {
+            <a asp-controller="Tasks" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-success">
+                + Додати задачу
+            </a>
+        }
+    </div>
+</div>
+
+<div class="row">
+    @* Список задач проєкту *@
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Задачі проєкту</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Назва</th>
+                            <th>Статус</th>
+                            <th>Пріоритет</th>
+                            <th>Виконавець</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var task in Model.Tasks!)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">@task.Title</span>
+                                </td>
+                                <td>
+                                    @* Логіка відображення статусів *@
+                                    @switch (task.Status)
+                                    {
+                                        case TaskManager.Models.TaskStatus.New:
+                                            <span class="badge bg-secondary">Нова</span>
+                                            break;
+                                        case TaskManager.Models.TaskStatus.InProgress:
+                                            <span class="badge bg-warning text-dark">В процесі</span>
+                                            break;
+                                        case TaskManager.Models.TaskStatus.Review:
+                                            <span class="badge bg-primary">Розгляд</span>
+                                            break;
+                                        case TaskManager.Models.TaskStatus.Completed:
+                                            <span class="badge bg-success">Виконано</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @* Пріоритети теж можна розфарбувати *@
+                                    @switch (task.Priority)
+                                    {
+                                        case TaskManager.Models.TaskPriority.Urgent:
+                                            <span class="text-danger fw-bold">Високий</span>
+                                            break;
+                                        case TaskManager.Models.TaskPriority.Medium:
+                                            <span class="text-primary">Середній</span>
+                                            break;
+                                        case TaskManager.Models.TaskPriority.Low:
+                                            <span class="text-muted">Низький</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (task.Assignee != null)
+                                    {
+                                        <div class="d-flex flex-column">
+                                            <span class="mb-1">👤 @task.Assignee.Email</span>
+            
+                                            @* Кнопки для того, хто виконує задачу *@
+                                            @if (User.Identity?.Name == task.Assignee.Email && task.Status ==
+                                                                                TaskManager.Models.TaskStatus.InProgress)
+                                            {
+                                                <div class="btn-group btn-group-sm">
+                                                    <form asp-controller="Tasks" asp-action="UpdateStatus" asp-route-id="@task.Id"
+                                                          asp-route-newStatus="Review" method="post">
+                                                        <button type="submit" class="btn btn-outline-primary">На перевірку</button>
+                                                    </form>
+                                                    <form asp-controller="Tasks" asp-action="Unclaim" asp-route-id="@task.Id"
+                                                          method="post">
+                                                        <button type="submit" class="btn btn-outline-danger">Відмовитися</button>
+                                                    </form>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <form asp-controller="Tasks" asp-action="Claim" asp-route-id="@task.Id" method="post">
+                                            <button type="submit" class="btn btn-sm btn-success">Взяти собі</button>
+                                        </form>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
+                                       class="btn btn-sm btn-light">⚙️</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @* Список учасників проєкту *@
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between">
+                <h5 class="mb-0">Команда</h5>
+                @if (role == ProjectRole.Owner)
+                {
+                    <button class="btn btn-sm btn-outline-primary">+</button>
+                }
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var m in Model.Members!)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@m.User?.Email</strong><br />
+                            <small class="text-muted">@m.Role</small>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

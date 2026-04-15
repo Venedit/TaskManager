@@ -1,13 +1,34 @@
+using System.ComponentModel.DataAnnotations;
 namespace TaskManager.Models;
 
 public enum TaskPriority
 {
-    Low, Medium, High, Urgent
+    [Display(Name = "Низький")]
+    Low,
+    
+    [Display(Name = "Середній")]
+    Medium,
+
+    [Display(Name = "Високий")]
+    High,
+    
+    [Display(Name = "Терміново (Високий)")]
+    Urgent
 }
 
 public enum TaskStatus
 {
-    New, InProgress, Review, Completed
+    [Display(Name = "Нова")]
+    New,
+    
+    [Display(Name = "В процесі")]
+    InProgress,
+    
+    [Display(Name = "На перевірці")] // Додаємо цей статус
+    Review,
+    
+    [Display(Name = "Виконано")]
+    Completed
 }
 public enum ProjectRole
 {

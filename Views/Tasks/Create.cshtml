@@ -10,6 +10,7 @@
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Create">
+            <input type="hidden" name="ProjectId" value="@ViewBag.ProjectId" />
             <div class="mb-3">
                 <label asp-for="Title" class="form-label">Назва</label>
                 <input asp-for="Title" class="form-control" />
@@ -26,6 +27,13 @@
             <div class="mb-3">
                 <label asp-for="Priority" class="form-label">Пріоритет</label>
                 <select asp-for="Priority" asp-items="Html.GetEnumSelectList<TaskPriority>()" class="form-select"></select>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="AssigneeId" class="form-label">Призначити виконавця</label>
+                <select asp-for="AssigneeId" class="form-select" asp-items="ViewBag.AssigneeId">
+                    <option value="">-- Залишити не призначеною --</option>
+                </select>
             </div>
             
             <button type="submit" class="btn btn-success">Зберегти</button>
