@@ -228,6 +228,48 @@ namespace TaskManager.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("TaskManager.Models.Project", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("TaskManager.Models.ProjectMember", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ProjectId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProjectMembers");
+                });
+
             modelBuilder.Entity("TaskManager.Models.TaskItem", b =>
                 {
                     b.Property<int>("Id")
@@ -255,6 +297,9 @@ namespace TaskManager.Data.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
 
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -268,6 +313,8 @@ namespace TaskManager.Data.Migrations
                     b.HasIndex("AssigneeId");
 
                     b.HasIndex("CreatorId");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Tasks");
                 });
@@ -323,6 +370,25 @@ namespace TaskManager.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TaskManager.Models.ProjectMember", b =>
+                {
+                    b.HasOne("TaskManager.Models.Project", "Project")
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskManager.Models.ApplicationUser", "User")
+                        .WithMany("ProjectMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("TaskManager.Models.TaskItem", b =>
                 {
                     b.HasOne("TaskManager.Models.ApplicationUser", "Assignee")
@@ -336,9 +402,17 @@ namespace TaskManager.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("TaskManager.Models.Project", "Project")
+                        .WithMany("Tasks")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Assignee");
 
                     b.Navigation("Creator");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("TaskManager.Models.ApplicationUser", b =>
@@ -346,6 +420,15 @@ namespace TaskManager.Data.Migrations
                     b.Navigation("AssignedTasks");
 
                     b.Navigation("CreatedTasks");
+
+                    b.Navigation("ProjectMemberships");
+                });
+
+            modelBuilder.Entity("TaskManager.Models.Project", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Tasks");
                 });
 #pragma warning restore 612, 618
         }

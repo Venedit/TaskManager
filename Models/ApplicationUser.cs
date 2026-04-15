@@ -9,4 +9,5 @@ public class ApplicationUser : IdentityUser
 
     public ICollection<TaskItem>? CreatedTasks { get; set; }
     public ICollection<TaskItem>? AssignedTasks { get; set; }
+    public ICollection<ProjectMember>? ProjectMemberships { get; set; }
 }

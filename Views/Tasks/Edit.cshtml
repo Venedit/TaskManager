@@ -1,0 +1,57 @@
+@model TaskManager.Models.TaskItem
+@using TaskManager.Models
+
+@{
+    ViewData["Title"] = "Редагування задачі";
+}
+
+<h1>Редагувати задачу</h1>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit">
+            @* Приховані поля: ми не показуємо їх користувачу, але вони потрібні серверу *@
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CreatorId" />
+            <input type="hidden" asp-for="CreatedAt" />
+
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label">Назва</label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Опис</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="Deadline" class="form-label">Дедлайн</label>
+                    <input asp-for="Deadline" type="datetime-local" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Priority" class="form-label">Пріоритет</label>
+                    <select asp-for="Priority" asp-items="Html.GetEnumSelectList<TaskPriority>()" class="form-select"></select>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label asp-for="Status" class="form-label">Статус</label>
+                    <select asp-for="Status" asp-items="Html.GetEnumSelectList<TaskManager.Models.TaskStatus>()" class="form-select"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="AssigneeId" class="form-label">Призначити виконавця</label>
+                    <select asp-for="AssigneeId" class="form-select" asp-items="ViewBag.Users">
+                        <option value="">-- Нікому не призначено --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
+            <a asp-action="Index" class="btn btn-secondary">Скасувати</a>
+        </form>
+    </div>
+</div>

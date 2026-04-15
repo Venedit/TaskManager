@@ -1,8 +1,55 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Головна";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@* Перевіряємо статус користувача прямо в HTML *@
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="text-center mt-5">
+        <h1 class="display-4">Привіт, @User.Identity.Name! 👋</h1>
+        <p class="lead">Ось твій короткий звіт по задачах:</p>
+
+        @* Малюємо картки зі статистикою (Bootstrap) *@
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card text-white bg-primary mb-3 shadow-sm">
+                    <div class="card-header text-uppercase fw-bold">Всього задач</div>
+                    <div class="card-body">
+                        <h1 class="card-title display-5">@ViewBag.Total</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-dark bg-warning mb-3 shadow-sm">
+                    <div class="card-header text-uppercase fw-bold">В процесі</div>
+                    <div class="card-body">
+                        <h1 class="card-title display-5">@ViewBag.InProgress</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-success mb-3 shadow-sm">
+                    <div class="card-header text-uppercase fw-bold">Виконано</div>
+                    <div class="card-body">
+                        <h1 class="card-title display-5">@ViewBag.Completed</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a asp-controller="Tasks" asp-action="Index" class="btn btn-outline-primary btn-lg mt-4">Перейти до всіх задач</a>
+    </div>
+}
+else
+{
+    @* Дизайн для незареєстрованих гостей *@
+    <div class="text-center mt-5">
+        <h1 class="display-4 fw-bold">Колективний Task Manager 🚀</h1>
+        <p class="lead mt-3">Організуй роботу своєї команди швидко, надійно та зручно.</p>
+        <hr class="my-4">
+        <p class="mb-4">Щоб почати створювати задачі та керувати процесами, будь ласка, увійдіть в систему.</p>
+        
+        <a class="btn btn-primary btn-lg mx-2" asp-area="Identity" asp-page="/Account/Register">Зареєструватися</a>
+        <a class="btn btn-outline-secondary btn-lg mx-2" asp-area="Identity" asp-page="/Account/Login">Увійти</a>
+    </div>
+}

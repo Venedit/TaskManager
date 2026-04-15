@@ -9,3 +9,10 @@ public enum TaskStatus
 {
     New, InProgress, Review, Completed
 }
+public enum ProjectRole
+{
+    Owner,
+    Manager, 
+    Developer,
+    Viewer
+}
