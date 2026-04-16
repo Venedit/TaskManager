@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using TaskManager.Data;
 using TaskManager.Models;
-using TaskStatus = TaskManager.Models.TaskStatus; // Щоб не плутати статуси
+using TaskStatus = TaskManager.Models.TaskStatus;
 
 namespace TaskManager.Controllers;
 
@@ -24,20 +24,25 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        // Перевіряємо, чи користувач зараз авторизований
-        if (User.Identity != null && User.Identity.IsAuthenticated)
+        if (User.Identity?.IsAuthenticated == true)
         {
             var userId = _userManager.GetUserId(User);
 
-            // Рахуємо всі задачі, де він є або Творцем, або Виконавцем
-            var myTasks = await _context.Tasks
-                .Where(t => t.CreatorId == userId || t.AssigneeId == userId)
+            // Отримуємо проєкти користувача
+            var projects = await _context.Projects
+                .Where(p => p.Members!.Any(m => m.UserId == userId))
                 .ToListAsync();
 
-            // ViewBag — це найпростіший спосіб передати дрібні дані з Контролера у View
-            ViewBag.Total = myTasks.Count;
-            ViewBag.InProgress = myTasks.Count(t => t.Status == TaskStatus.InProgress);
-            ViewBag.Completed = myTasks.Count(t => t.Status == TaskStatus.Completed);
+            // Отримуємо 5 найближчих задач, які ще не виконані
+            var urgentTasks = await _context.Tasks
+                .Include(t => t.Project)
+                .Where(t => (t.AssigneeId == userId || t.CreatorId == userId) && t.Status != TaskStatus.Completed)
+                .OrderBy(t => t.Deadline)
+                .Take(5)
+                .ToListAsync();
+
+            ViewBag.Projects = projects;
+            ViewBag.UrgentTasks = urgentTasks;
         }
 
         return View();

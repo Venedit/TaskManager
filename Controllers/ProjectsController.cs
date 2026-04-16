@@ -19,19 +19,6 @@ public class ProjectsController : Controller
         _userManager = userManager;
     }
 
-    // GET: /Projects/
-    public async Task<IActionResult> Index()
-    {
-        var userId = _userManager.GetUserId(User);
-
-        // Шукаємо тільки ті проєкти, де поточний користувач є учасником
-        var myProjects = await _context.Projects
-            .Where(p => p.Members!.Any(m => m.UserId == userId))
-            .ToListAsync();
-
-        return View(myProjects);
-    }
-
     // GET: /Projects/Create
     public IActionResult Create()
     {
@@ -90,4 +77,48 @@ public class ProjectsController : Controller
 
         return View(project);
     }
+
+    // GET: /Projects/AddMember/5
+public IActionResult AddMember(int projectId)
+{
+    ViewBag.ProjectId = projectId;
+    return View();
+}
+
+// POST: /Projects/AddMember
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> AddMember(int projectId, string email, ProjectRole role)
+{
+    var user = await _userManager.FindByEmailAsync(email);
+    if (user == null)
+    {
+        ModelState.AddModelError("", "Користувача з таким Email не знайдено.");
+        ViewBag.ProjectId = projectId;
+        return View();
+    }
+
+    // Перевірка, чи він вже не в команді
+    var exists = await _context.ProjectMembers
+        .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == user.Id);
+
+    if (exists)
+    {
+        ModelState.AddModelError("", "Цей користувач вже є учасником проєкту.");
+        ViewBag.ProjectId = projectId;
+        return View();
+    }
+
+    var member = new ProjectMember
+    {
+        ProjectId = projectId,
+        UserId = user.Id,
+        Role = role
+    };
+
+    _context.Add(member);
+    await _context.SaveChangesAsync();
+
+    return RedirectToAction(nameof(Details), new { id = projectId });
+}
 }

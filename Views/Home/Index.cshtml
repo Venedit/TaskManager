@@ -5,39 +5,56 @@
 @* Перевіряємо статус користувача прямо в HTML *@
 @if (User.Identity?.IsAuthenticated == true)
 {
-    <div class="text-center mt-5">
-        <h1 class="display-4">Привіт, @User.Identity.Name! 👋</h1>
-        <p class="lead">Ось твій короткий звіт по задачах:</p>
+    <div class="container mt-4">
+        <h2 class="mb-4">Привіт, @User.Identity.Name! 👋</h2>
 
-        @* Малюємо картки зі статистикою (Bootstrap) *@
-        <div class="row mt-5">
-            <div class="col-md-4">
-                <div class="card text-white bg-primary mb-3 shadow-sm">
-                    <div class="card-header text-uppercase fw-bold">Всього задач</div>
-                    <div class="card-body">
-                        <h1 class="card-title display-5">@ViewBag.Total</h1>
+        <div class="row">
+            <div class="col-lg-8">
+                <h4 class="text-muted mb-3">Ваші проєкти</h4>
+                <div class="row">
+                    @foreach (var proj in ViewBag.Projects)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm border-0 h-100 bg-light">
+                                <div class="card-body">
+                                    <h5 class="card-title fw-bold">@proj.Name</h5>
+                                    <p class="card-text text-truncate">@proj.Description</p>
+                                    <a asp-controller="Projects" asp-action="Details" asp-route-id="@proj.Id"
+                                       class="btn btn-sm btn-primary">Увійти в проєкт</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-md-6 mb-3">
+                        <div class="card shadow-sm border-dashed h-100 d-flex align-items-center justify-content-center bg-transparent"
+                             style="border: 2px dashed #dee2e6;">
+                            <a asp-controller="Projects" asp-action="Create"
+                                   class="text-decoration-none text-muted p-4 text-center">
+                                <h1 class="display-6">+</h1>
+                                <span>Створити проєкт</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card text-dark bg-warning mb-3 shadow-sm">
-                    <div class="card-header text-uppercase fw-bold">В процесі</div>
-                    <div class="card-body">
-                        <h1 class="card-title display-5">@ViewBag.InProgress</h1>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card text-white bg-success mb-3 shadow-sm">
-                    <div class="card-header text-uppercase fw-bold">Виконано</div>
-                    <div class="card-body">
-                        <h1 class="card-title display-5">@ViewBag.Completed</h1>
-                    </div>
+
+            <div class="col-lg-4">
+                <h4 class="text-muted mb-3">Дедлайни 🔥</h4>
+                <div class="list-group shadow-sm">
+                    @foreach (var task in ViewBag.UrgentTasks)
+                    {
+                        <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
+                               class="list-group-item list-group-item-action border-0 mb-2 rounded shadow-sm">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 fw-bold">@task.Title</h6>
+                                <small class="text-danger">@task.Deadline.ToShortDateString()</small>
+                            </div>
+                            <small class="text-muted">Проєкт: @task.Project?.Name</small>
+                        </a>
+                    }
                 </div>
             </div>
         </div>
-
-        <a asp-controller="Tasks" asp-action="Index" class="btn btn-outline-primary btn-lg mt-4">Перейти до всіх задач</a>
     </div>
 }
 else

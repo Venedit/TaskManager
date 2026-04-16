@@ -112,6 +112,19 @@ public class TasksController : Controller
     // ВАЖЛИВО: Додали ProjectId у список Bind
     public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Deadline,Priority,Status,CreatorId,AssigneeId,CreatedAt,ProjectId")] TaskItem task)
     {
+
+        var userId = _userManager.GetUserId(User);
+
+        // ПЕРЕВІРКА ПРАВ: Шукаємо роль юзера в цьому проєкті
+        var member = await _context.ProjectMembers
+            .FirstOrDefaultAsync(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId);
+
+        // Дозволяємо редагувати тільки Власнику або Менеджеру
+        if (member == null || (member.Role != ProjectRole.Owner && member.Role != ProjectRole.Manager))
+        {
+            return Forbid(); // Повертаємо 403 Forbidden
+        }
+
         if (id != task.Id) return NotFound();
 
         // Вимикаємо валідацію об'єктів-зв'язків

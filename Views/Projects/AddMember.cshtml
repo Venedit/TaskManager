@@ -1,0 +1,32 @@
+@model TaskManager.Models.ProjectMember
+@using TaskManager.Models
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow border-0">
+                <div class="card-body p-4">
+                    <h3 class="mb-4">Додати в команду</h3>
+                    <form asp-action="AddMember">
+                        <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email користувача</label>
+                            <input name="email" type="email" class="form-control" placeholder="example@mail.com" required />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Роль у проєкті</label>
+                            <select name="role" class="form-select" asp-items="Html.GetEnumSelectList<ProjectRole>()"></select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Запросити</button>
+                            <a asp-action="Details" asp-route-id="@ViewBag.ProjectId" class="btn btn-light">Скасувати</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

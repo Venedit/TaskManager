@@ -111,8 +111,11 @@
                                     }
                                 </td>
                                 <td class="text-end">
+                                    @if(role == ProjectRole.Owner || role == ProjectRole.Manager)
+                                    {
                                     <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
                                        class="btn btn-sm btn-light">⚙️</a>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -129,7 +132,7 @@
                 <h5 class="mb-0">Команда</h5>
                 @if (role == ProjectRole.Owner)
                 {
-                    <button class="btn btn-sm btn-outline-primary">+</button>
+                    <a asp-action="AddMember" asp-route-projectId="@Model.Id" class="btn btn-sm btn-outline-primary">+</a>
                 }
             </div>
             <ul class="list-group list-group-flush">
