@@ -1,124 +1,104 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TaskManager.Data;
 using TaskManager.Models;
+using TaskManager.Services.Interfaces;
 
-namespace TaskManager.Controllers;
-
-[Authorize]
-public class ProjectsController : Controller
+namespace TaskManager.Controllers
 {
-    private readonly ApplicationDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-
-    public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    [Authorize]
+    public class ProjectsController : Controller
     {
-        _context = context;
-        _userManager = userManager;
-    }
+        private readonly IProjectService _projectService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-    // GET: /Projects/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: /Projects/Create
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Name,Description")] Project project)
-    {
-        if (ModelState.IsValid)
+        public ProjectsController(IProjectService projectService, UserManager<ApplicationUser> userManager)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Challenge();
-
-            project.CreatedAt = DateTime.UtcNow;
-
-            _context.Add(project);
-            await _context.SaveChangesAsync();
-
-            var member = new ProjectMember
-            {
-                ProjectId = project.Id,
-                UserId = user.Id,
-                Role = ProjectRole.Owner
-            };
-
-            _context.Add(member);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
+            _projectService = projectService;
+            _userManager = userManager;
         }
-        return View(project);
+
+        public async Task<IActionResult> Details(int id)
+        {
+            var project = await _projectService.GetProjectDetailsAsync(id);
+            if (project == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            var member = project.Members?.FirstOrDefault(m => m.UserId == userId);
+
+            if (member == null) return Forbid();
+
+            ViewBag.UserRole = member.Role;
+            return View(project);
+        }
+
+        public IActionResult Create() => View();
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Name,Description")] Project project)
+        {
+            if (!ModelState.IsValid) return View(project);
+
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Challenge();
+
+            await _projectService.CreateProjectAsync(project, userId);
+            return RedirectToAction("Index", "Home");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var result = await _projectService.DeleteProjectAsync(id, userId!);
+
+            if (!result) return Forbid();
+            return RedirectToAction("Index", "Home");
+        }
+
+        public IActionResult AddMember(int projectId)
+        {
+            ViewBag.ProjectId = projectId;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddMember(int projectId, string email, ProjectRole role)
+        {
+            var result = await _projectService.AddMemberAsync(projectId, email, role);
+
+            if (!result)
+            {
+                ModelState.AddModelError("", "Не вдалося додати користувача (не знайдено або вже у проєкті).");
+                ViewBag.ProjectId = projectId;
+                return View();
+            }
+
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveMember(int projectId, string userId)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            await _projectService.RemoveMemberAsync(projectId, userId, currentUserId!);
+
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateRole(int projectId, string userId, ProjectRole newRole)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            await _projectService.UpdateMemberRoleAsync(projectId, userId, newRole, currentUserId!);
+
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+        
     }
-
-    // GET: /Projects/Details/5
-    public async Task<IActionResult> Details(int? id)
-    {
-        if (id == null) return NotFound();
-
-        var userId = _userManager.GetUserId(User);
-
-        var project = await _context.Projects
-            .Include(p => p.Tasks)
-            .Include(p => p.Members!)
-                .ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (project == null) return NotFound();
-
-        var memberRecord = project.Members!.FirstOrDefault(m => m.UserId == userId);
-        if (memberRecord == null) return Forbid();
-
-        ViewBag.UserRole = memberRecord.Role;
-
-        return View(project);
-    }
-
-    // GET: /Projects/AddMember/5
-public IActionResult AddMember(int projectId)
-{
-    ViewBag.ProjectId = projectId;
-    return View();
-}
-
-// POST: /Projects/AddMember
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> AddMember(int projectId, string email, ProjectRole role)
-{
-    var user = await _userManager.FindByEmailAsync(email);
-    if (user == null)
-    {
-        ModelState.AddModelError("", "Користувача з таким Email не знайдено.");
-        ViewBag.ProjectId = projectId;
-        return View();
-    }
-
-    // Перевірка, чи він вже не в команді
-    var exists = await _context.ProjectMembers
-        .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == user.Id);
-
-    if (exists)
-    {
-        ModelState.AddModelError("", "Цей користувач вже є учасником проєкту.");
-        ViewBag.ProjectId = projectId;
-        return View();
-    }
-
-    var member = new ProjectMember
-    {
-        ProjectId = projectId,
-        UserId = user.Id,
-        Role = role
-    };
-
-    _context.Add(member);
-    await _context.SaveChangesAsync();
-
-    return RedirectToAction(nameof(Details), new { id = projectId });
-}
 }

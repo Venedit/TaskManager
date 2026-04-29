@@ -1,61 +1,44 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
-using TaskManager.Data;
+using Microsoft.AspNetCore.Identity;
 using TaskManager.Models;
-using TaskStatus = TaskManager.Models.TaskStatus;
+using TaskManager.Services.Interfaces; 
 
-namespace TaskManager.Controllers;
-
-public class HomeController : Controller
+namespace TaskManager.Controllers // Твій namespace
 {
-    private readonly ILogger<HomeController> _logger;
-    private readonly ApplicationDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-
-    // Впроваджуємо залежності (БД та Менеджер користувачів)
-    public HomeController(ILogger<HomeController> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public class HomeController : Controller
     {
-        _logger = logger;
-        _context = context;
-        _userManager = userManager;
-    }
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IProjectService _projectService;
+        
+        // 1. Додаємо поле для сервісу задач
+        private readonly ITaskService _taskService; 
 
-    public async Task<IActionResult> Index()
-    {
-        if (User.Identity?.IsAuthenticated == true)
+        // 2. Ін'єктуємо ITaskService через конструктор
+        public HomeController(
+            UserManager<ApplicationUser> userManager, 
+            IProjectService projectService,
+            ITaskService taskService) 
         {
-            var userId = _userManager.GetUserId(User);
-
-            // Отримуємо проєкти користувача
-            var projects = await _context.Projects
-                .Where(p => p.Members!.Any(m => m.UserId == userId))
-                .ToListAsync();
-
-            // Отримуємо 5 найближчих задач, які ще не виконані
-            var urgentTasks = await _context.Tasks
-                .Include(t => t.Project)
-                .Where(t => (t.AssigneeId == userId || t.CreatorId == userId) && t.Status != TaskStatus.Completed)
-                .OrderBy(t => t.Deadline)
-                .Take(5)
-                .ToListAsync();
-
-            ViewBag.Projects = projects;
-            ViewBag.UrgentTasks = urgentTasks;
+            _userManager = userManager;
+            _projectService = projectService;
+            _taskService = taskService;
         }
 
-        return View();
-    }
+        public async Task<IActionResult> Index()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userId = _userManager.GetUserId(User);
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+                // 3. Збираємо дані з обох сервісів
+                ViewBag.Projects = await _projectService.GetUserProjectsAsync(userId);
+                
+                // Саме цього рядка не вистачало сторінці, щоб намалювати дедлайни!
+                ViewBag.UrgentTasks = await _taskService.GetUrgentTasksAsync(userId); 
+            }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+
+            return View();
+        }
     }
 }

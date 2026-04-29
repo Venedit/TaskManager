@@ -1,5 +1,7 @@
 @model TaskManager.Models.Project
+@using Microsoft.AspNetCore.Identity
 @using TaskManager.Models
+@inject UserManager<ApplicationUser> _userManager
 
 @{
     ViewData["Title"] = Model.Name;
@@ -11,8 +13,16 @@
         <h1>@Model.Name</h1>
         <p class="text-muted">@Model.Description</p>
     </div>
-    <div>
-        @* ПЕРЕВІРКА РОЛІ: тільки Owner та Manager можуть створювати задачі *@
+    <div class="d-flex gap-2">
+        @* Тільки Owner бачить кнопку видалення проєкту *@
+        @if (role == ProjectRole.Owner)
+        {
+            <form asp-controller="Projects" asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('УВАГА! Це назавжди видалить проєкт і ВСІ його задачі. Продовжити?');">
+                <button type="submit" class="btn btn-danger">Видалити проєкт</button>
+            </form>
+        }
+
         @if (role == ProjectRole.Owner || role == ProjectRole.Manager)
         {
             <a asp-controller="Tasks" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-success">
@@ -111,10 +121,19 @@
                                     }
                                 </td>
                                 <td class="text-end">
-                                    @if(role == ProjectRole.Owner || role == ProjectRole.Manager)
+                                    @if (role == ProjectRole.Owner || role == ProjectRole.Manager || task.CreatorId ==
+                                                                    _userManager.GetUserId(User))
                                     {
-                                    <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
-                                       class="btn btn-sm btn-light">⚙️</a>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
+                                               class="btn btn-outline-secondary">⚙️</a>
+            
+                                            <form asp-controller="Tasks" asp-action="Delete" asp-route-id="@task.Id"
+                                                  method="post"
+                                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цю задачу?');">
+                                                <button type="submit" class="btn btn-outline-danger">🗑️</button>
+                                            </form>
+                                        </div>
                                     }
                                 </td>
                             </tr>
@@ -136,14 +155,60 @@
                 }
             </div>
             <ul class="list-group list-group-flush">
-                @foreach (var m in Model.Members!)
+                @if (Model.Members != null)
                 {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>@m.User?.Email</strong><br />
-                            <small class="text-muted">@m.Role</small>
-                        </div>
-                    </li>
+                    @foreach (var m in Model.Members)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <span class="me-3">👤 @m.User?.Email</span>
+                    
+                                @* ЯКЩО ДИВИТЬСЯ OWNER І ЦЕ НЕ ВІН САМ - ДОЗВОЛЯЄМО ЗМІНУ РОЛІ *@
+                                @if (role == TaskManager.Models.ProjectRole.Owner && m.UserId != _userManager.GetUserId(User))
+                                {
+                                    <form asp-controller="Projects" asp-action="UpdateRole" method="post" class="m-0 p-0">
+                                        <input type="hidden" name="projectId" value="@Model.Id" />
+                                        <input type="hidden" name="userId" value="@m.UserId" />
+                                        @* onchange="this.form.submit()" відправляє форму одразу при виборі зі списку *@
+                                        <select name="newRole" class="form-select form-select-sm" onchange="this.form.submit()"
+                                                style="width: auto;">
+                                            @foreach (var item in Html.GetEnumSelectList<TaskManager.Models.ProjectRole>())
+                                            {
+                                                if (item.Value != ((int)TaskManager.Models.ProjectRole.Owner).ToString())
+                                                {
+                                                    if (item.Value == ((int)m.Role).ToString())
+                                                    {
+                                                        <option value="@item.Value" selected>@item.Text</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@item.Value">@item.Text</option>
+                                                    }
+                                                }
+                                            }
+                                        </select>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @* ДЛЯ ВСІХ ІНШИХ (АБО ДЛЯ САМОГО ОВНЕРА) ПОКАЗУЄМО ПРОСТО БЕЙДЖ *@
+                                    <span class="badge bg-info">@m.Role</span>
+                                }
+                            </div>
+
+                            @* КНОПКА ВИДАЛЕННЯ (ТІЛЬКИ ДЛЯ ОВНЕРА І НЕ ДЛЯ СЕБЕ) *@
+                            @if (role == TaskManager.Models.ProjectRole.Owner && m.UserId != _userManager.GetUserId(User))
+                            {
+                                <form asp-controller="Projects" asp-action="RemoveMember" method="post"
+                                      onsubmit="return confirm('Ви впевнені, що хочете видалити цього користувача з проєкту?');">
+                                    <input type="hidden" name="projectId" value="@Model.Id" />
+                                    <input type="hidden" name="userId" value="@m.UserId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
+                                            title="Видалити з команди">✖</button>
+                                </form>
+                            }
+                        </li>
+                    }
                 }
             </ul>
         </div>
