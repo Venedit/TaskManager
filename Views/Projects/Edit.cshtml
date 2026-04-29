@@ -64,7 +64,6 @@
                             <select name="role" class="form-select form-select-sm">
                                 @foreach (var item in Html.GetEnumSelectList<ProjectRole>())
                                 {
-                                    // Овнер не може додати іншого Овнера
                                     if (item.Value != ((int)ProjectRole.Owner).ToString())
                                     {
                                         <option value="@item.Value">@item.Text</option>

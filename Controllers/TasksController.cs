@@ -15,7 +15,6 @@ namespace TaskManager.Controllers
         private readonly IProjectService _projectService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        // Ін'єктуємо обидва сервіси, бо для Edit нам треба завантажити список мемберів проєкту
         public TasksController(ITaskService taskService, IProjectService projectService, UserManager<ApplicationUser> userManager)
         {
             _taskService = taskService;

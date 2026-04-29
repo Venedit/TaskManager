@@ -109,7 +109,6 @@ namespace TaskManager.Controllers
             var userId = _userManager.GetUserId(User);
             var member = project.Members?.FirstOrDefault(m => m.UserId == userId);
 
-            // Тільки Owner може зайти в налаштування
             if (member == null || member.Role != ProjectRole.Owner) return Forbid();
 
             return View(project);

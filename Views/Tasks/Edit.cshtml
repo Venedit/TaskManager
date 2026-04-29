@@ -10,7 +10,6 @@
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Edit">
-            @* Приховані поля: ми не показуємо їх користувачу, але вони потрібні серверу *@
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="CreatorId" />
             <input type="hidden" asp-for="CreatedAt" />
@@ -45,7 +44,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="AssigneeId" class="form-label">Призначити виконавця</label>
-                    <select asp-for="AssigneeId" class="form-select" asp-items="ViewBag.Users">
+                    <select asp-for="AssigneeId" class="form-select" asp-items="ViewBag.AssigneeId">
                         <option value="">-- Нікому не призначено --</option>
                     </select>
                 </div>

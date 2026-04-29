@@ -8,7 +8,6 @@
                 <div class="card-body p-4">
                     <h3 class="mb-4">Додати в команду</h3>
                     <form asp-action="AddMember">
-                        @* 1. ДОДАЄМО БЛОК ДЛЯ ПОМИЛОК *@
                         <div asp-validation-summary="All" class="text-danger fw-bold mb-3"></div>
     
                         <input type="hidden" name="projectId" value="@ViewBag.ProjectId" />

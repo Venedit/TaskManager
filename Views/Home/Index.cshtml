@@ -1,109 +1,87 @@
 ﻿@using TaskManager.Models
 @{
-    ViewData["Title"] = "Мій простір";
-    var urgentTasks = ViewBag.UrgentTasks as List<TaskItem> ?? new List<TaskItem>();
-    var myProjects = ViewBag.Projects as List<Project> ?? new List<Project>();
+    ViewData["Title"] = "Головна";
 }
 
-<div class="container-fluid p-0">
-    <div class="mb-5">
-        <h1 class="fw-bold">Вітаю, Богдане! 👋</h1>
-        <p class="text-muted">Ось твій фронт робіт на сьогодні.</p>
-    </div>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    var urgentTasks = ViewBag.UrgentTasks as List<TaskItem> ?? new List<TaskItem>();
+    var myProjects = ViewBag.Projects as List<Project> ?? new List<Project>();
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold mb-0">Мої задачі в роботі</h4>
-                <span class="badge bg-primary rounded-pill">@urgentTasks.Count</span>
-            </div>
-
-            @if (!urgentTasks.Any())
-            {
-                <div class="text-center py-5 bg-white rounded shadow-sm">
-                    <div class="fs-1">🎉</div>
-                    <h5 class="mt-3">Всі задачі виконано!</h5>
-                    <p class="text-muted">Можна відпочити або взяти новий проєкт.</p>
+    <div class="container-fluid p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Мої задачі</h4>
+                    <span class="badge bg-primary rounded-pill">@urgentTasks.Count</span>
                 </div>
-            }
-            else
-            {
-                <div class="row g-3">
-                    @foreach (var task in urgentTasks)
-                    {
-                        <div class="col-md-6">
-                            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id"
-                                   class="text-decoration-none text-dark d-block h-100">
-                                <div
-                                    class="card h-100 shadow-sm border-0 kanban-card @(task.Deadline < DateTime.Now ? "border-start border-4 border-danger" : "border-start border-4 border-primary")">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <small class="text-uppercase fw-bold text-secondary" style="font-size: 0.7rem;">
-                                                📁 @task.Project?.Name
-                                            </small>
-                                            <span class="task-priority bg-light border">@task.Priority</span>
-                                        </div>
-                        
-                                        <h5 class="fw-bold mb-2">@task.Title</h5>
-                                        <p class="text-muted small mb-3 text-truncate-2" style="height: 40px;">
-                                            @task.Description
-                                        </p>
-                        
-                                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                                            <div
-                                                class="small @(task.Deadline < DateTime.Now ? "text-danger fw-bold" : "text-muted")">
-                                                📅 @task.Deadline.ToString("dd.MM.yyyy")
+
+                @if (!urgentTasks.Any())
+                {
+                    <div class="text-center py-5 bg-white rounded shadow-sm">
+                        <h5 class="mt-3">Задачі відсутні</h5>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var task in urgentTasks)
+                        {
+                            <div class="col-md-6">
+                                <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id"
+                                       class="text-decoration-none text-dark d-block h-100">
+                                    <div
+                                        class="card h-100 shadow-sm border-0 kanban-card @(task.Deadline < DateTime.Now ? "border-start border-4 border-danger" : "border-start border-4 border-primary")">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <small class="text-uppercase fw-bold text-secondary" style="font-size: 0.7rem;">
+                                                    📁 @task.Project?.Name
+                                                </small>
+                                                <span class="task-priority bg-light border">@task.Priority</span>
+                                            </div>
+                            
+                                            <h5 class="fw-bold mb-2">@task.Title</h5>
+                                            <p class="text-muted small mb-3 text-truncate-2" style="height: 40px;">
+                                                @task.Description
+                                            </p>
+                            
+                                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                                <div
+                                                    class="small @(task.Deadline < DateTime.Now ? "text-danger fw-bold" : "text-muted")">
+                                                    📅 @task.Deadline.ToString("dd.MM.yyyy")
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </a>
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-4">Статистика</h5>
-                    <div class="d-flex justify-content-between mb-3">
-                        <span>Активні проєкти</span>
-                        <span class="fw-bold">@myProjects.Count</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-3">
-                        <span>Задач в черзі</span>
-                        <span class="fw-bold">@urgentTasks.Count(t => t.Status ==
-                                                        TaskManager.Models.TaskStatus.New)</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Дедлайни, що горять</span>
-                            <span class="fw-bold text-warning">@urgentTasks.Count(t => t.Deadline <
-                                                            DateTime.Now.AddDays(2))</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card shadow-sm border-0">
-                        <div class="card-body">
-                            <h6 class="fw-bold mb-3">Швидкі дії</h6>
-                            <div class="d-grid gap-2">
-                                <a asp-controller="Projects" asp-action="Create" class="btn btn-outline-primary text-start">
-                                    ➕ Створити новий проєкт
                                 </a>
                             </div>
-                        </div>
+                        }
                     </div>
-                </div>
+                }
             </div>
-        </div>
 
-        <style>
-            .text-truncate-2 {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-        </style>
+        </div>
+    </div>
+
+    <style>
+        .text-truncate-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+}
+else
+{
+    <div class="text-center py-5 mt-5">
+        <h1 class="display-4 fw-bold mb-4">Керування проєктами</h1>
+        <p class="lead text-muted mb-5 mx-auto" style="max-width: 600px;">
+            Система для планування та контролю задач.
+        </p>
+        <div>
+            <a class="btn btn-primary btn-lg me-3 px-4 shadow-sm" asp-area="Identity" asp-page="/Account/Register">Реєстрація</a>
+            <a class="btn btn-outline-secondary btn-lg px-4" asp-area="Identity" asp-page="/Account/Login">Вхід</a>
+        </div>
+    </div>
+}

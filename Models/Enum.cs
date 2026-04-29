@@ -25,7 +25,7 @@ public enum TaskStatus
     [Display(Name = "В процесі")]
     InProgress,
     
-    [Display(Name = "На перевірці")] // Додаємо цей статус
+    [Display(Name = "На перевірці")]
     Review,
     
     [Display(Name = "Виконано")]

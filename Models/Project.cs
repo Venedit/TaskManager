@@ -14,7 +14,6 @@ public class Project
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Навігаційні властивості
     public ICollection<TaskItem>? Tasks { get; set; }
     public ICollection<ProjectMember>? Members { get; set; }
 }

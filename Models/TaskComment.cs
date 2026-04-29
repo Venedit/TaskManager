@@ -11,7 +11,6 @@ namespace TaskManager.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Зв'язок з користувачем (автор коментаря)
         public string AuthorId { get; set; } = string.Empty;
         public ApplicationUser? Author { get; set; }
 

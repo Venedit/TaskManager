@@ -59,7 +59,6 @@ namespace TaskManager.Services
             var member = await _context.ProjectMembers
                 .FirstOrDefaultAsync(pm => pm.ProjectId == projectId && pm.UserId == userId);
 
-            // Тільки Owner може видалити
             if (member == null || member.Role != ProjectRole.Owner) return false;
 
             _context.Projects.Remove(project);

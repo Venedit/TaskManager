@@ -20,7 +20,6 @@
 <body class="@(SignInManager.IsSignedIn(User) ? "app-body" : "")">
     @if (SignInManager.IsSignedIn(User))
     {
-        // Якщо юзер залогінений - отримуємо його проєкти для сайдбару
         var userId = UserManager.GetUserId(User);
         var myProjects = await ProjectService.GetUserProjectsAsync(userId!);
 
@@ -56,7 +55,7 @@
                             <li class="nav-item mb-1">
                                 @{
                                     var isActive = ViewContext.RouteData.Values["id"]?.ToString() == proj.Id.ToString() ?
-    "bg-primary" : "";
+   "bg-primary" : "";
                                 }
                                 <a class="nav-link text-white @isActive p-2 rounded" asp-controller="Projects"
                                        asp-action="Details" asp-route-id="@proj.Id">
@@ -69,7 +68,10 @@
                 
                 <div class="p-3 border-top border-secondary mt-auto bg-darker">
                     <div class="small mb-2 text-truncate text-secondary">Ввійшли як:</div>
-                    <div class="fw-bold mb-3 text-truncate">👤 @User.Identity?.Name</div>
+                    <a asp-area="Identity" asp-page="/Account/Manage/Index"
+                           class="fw-bold mb-3 text-truncate text-white text-decoration-none d-block">
+                        👤 @User.Identity?.Name
+                    </a>
                     <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout"
                           asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
                         <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Вийти з системи</button>
@@ -89,7 +91,9 @@
         <header>
             <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
                 <div class="container-fluid">
-                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">TaskManager</a>
+                    <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                        <span class="bg-primary text-white rounded px-2 me-1">✓</span> TaskManager
+                    </a>
                 </div>
             </nav>
         </header>
