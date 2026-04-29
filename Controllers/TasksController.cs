@@ -117,7 +117,7 @@ namespace TaskManager.Controllers
 
             return View(task);
         }
-        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Claim(int id)
@@ -161,6 +161,23 @@ namespace TaskManager.Controllers
             if (!result) return Forbid();
 
             return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reject(int id, string commentText)
+        {
+            if (string.IsNullOrWhiteSpace(commentText))
+            {
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var userId = _userManager.GetUserId(User);
+            var result = await _taskService.RejectTaskWithCommentAsync(id, userId!, commentText);
+
+            if (!result) return NotFound();
+
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

@@ -5,7 +5,8 @@
 }
 
 <div class="mb-4">
-    <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId" class="text-decoration-none text-muted">
+    <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId"
+           class="text-decoration-none text-muted">
         ← Повернутися до проєкту "@Model.Project?.Name"
     </a>
 </div>
@@ -16,69 +17,122 @@
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="fw-bold mb-0">@Model.Title</h2>
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">✏️ Редагувати</a>
-                </div>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">Редагувати</a>
+                    </div>
                 
-                <div class="mb-4">
-                    <span class="badge bg-light text-dark border me-2">@Model.Priority</span>
-                    @if (Model.Deadline < DateTime.Now && Model.Status != TaskManager.Models.TaskStatus.Completed)
-                    {
-                        <span class="badge bg-danger">⏳ Протерміновано: @Model.Deadline.ToString("dd.MM.yyyy")</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-info text-dark">📅 Дедлайн: @Model.Deadline.ToString("dd.MM.yyyy")</span>
-                    }
-                </div>
+                    <div class="mb-4">
+                        <span class="badge bg-light text-dark border me-2">@Model.Priority</span>
+                        @if (Model.Deadline < DateTime.Now && Model.Status != TaskManager.Models.TaskStatus.Completed)
+                        {
+                            <span class="badge bg-danger">Протерміновано: @Model.Deadline.ToString("dd.MM.yyyy")</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info text-dark">Дедлайн: @Model.Deadline.ToString("dd.MM.yyyy")</span>
+                        }
+                    </div>
 
-                <h6 class="text-muted fw-bold small text-uppercase">Опис задачі</h6>
-                <div class="bg-light p-3 rounded" style="min-height: 150px; white-space: pre-wrap;">
-                    @(string.IsNullOrWhiteSpace(Model.Description) ? "Опис відсутній." : Model.Description)
+                    <h6 class="text-muted fw-bold small text-uppercase">Опис задачі</h6>
+                    <div class="bg-light p-3 rounded" style="min-height: 150px; white-space: pre-wrap;">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "Опис відсутній." : Model.Description)
+                    </div>
+                    <div class="mt-5">
+                        <h5 class="fw-bold mb-4">Коментарі</h5>
+
+                        @if (Model.Comments != null && Model.Comments.Any())
+                        {
+                            <div class="mb-4">
+                                @foreach (var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+                                {
+                                    <div class="card bg-light border-0 mb-3">
+                                        <div class="card-body py-2 px-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="fw-bold small">👤 @(comment.Author?.Email ?? "Невідомий")</span>
+                                                <span class="text-muted"
+                                                      style="font-size: 0.75rem;">@comment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                            </div>
+                                            <p class="mb-0 small" style="white-space: pre-wrap;">@comment.Text</p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted small italic">Коментарів поки немає.</p>
+                        }
+
+                        @if (Model.Status == TaskManager.Models.TaskStatus.Review)
+                        {
+                            <div class="card border-primary shadow-sm mt-4">
+                                <div class="card-header text-dark fw-bold">
+                                    Перевірка
+                                </div>
+                                <div class="card-body">
+                                    <p class="small text-muted mb-3">Коментар.</p>
+                                        <form asp-action="Reject" method="post">
+                                            <input type="hidden" name="id" value="@Model.Id" />
+                                            <div class="mb-3">
+                                                <textarea name="commentText" class="form-control" rows="3"
+                                                          placeholder="Що саме потрібно переробити?..." required></textarea>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <button type="submit" class="btn btn-primary">Відправити на доопрацювання</button>
+                        
+                                                <button type="submit" asp-action="UpdateStatus" name="newStatus"
+                                                        value="@TaskManager.Models.TaskStatus.Completed" class="btn btn-success" formnovalidate>
+                                                    Завершити
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                <h6 class="fw-bold mb-0">Статус задачі</h6>
-            </div>
-            <div class="card-body">
-                <form asp-action="UpdateStatus" method="post" class="d-grid gap-2">
-                    <input type="hidden" name="id" value="@Model.Id" />
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                        <h6 class="fw-bold mb-0">Статус задачі</h6>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="UpdateStatus" method="post" class="d-grid gap-2">
+                            <input type="hidden" name="id" value="@Model.Id" />
                     
-                    <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.New" 
-                            class="btn @(Model.Status == TaskManager.Models.TaskStatus.New ? "btn-secondary" : "btn-outline-secondary") text-start">
-                        Нова
-                    </button>
-                    <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.InProgress" 
-                            class="btn @(Model.Status == TaskManager.Models.TaskStatus.InProgress ? "btn-warning" : "btn-outline-warning") text-start">
-                        В роботі
-                    </button>
-                    <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.Review" 
-                            class="btn @(Model.Status == TaskManager.Models.TaskStatus.Review ? "btn-primary" : "btn-outline-primary") text-start">
-                        На перевірці
-                    </button>
-                    <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.Completed" 
-                            class="btn @(Model.Status == TaskManager.Models.TaskStatus.Completed ? "btn-success" : "btn-outline-success") text-start">
-                        Завершена
-                    </button>
-                </form>
-            </div>
-        </div>
+                            <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.New"
+                                    class="btn @(Model.Status == TaskManager.Models.TaskStatus.New ? "btn-secondary" : "btn-outline-secondary") text-start">
+                                Нова
+                            </button>
+                            <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.InProgress"
+                                    class="btn @(Model.Status == TaskManager.Models.TaskStatus.InProgress ? "btn-warning" : "btn-outline-warning") text-start">
+                                В роботі
+                            </button>
+                            <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.Review"
+                                    class="btn @(Model.Status == TaskManager.Models.TaskStatus.Review ? "btn-primary" : "btn-outline-primary") text-start">
+                                На перевірці
+                            </button>
+                            <button type="submit" name="newStatus" value="@TaskManager.Models.TaskStatus.Completed"
+                                    class="btn @(Model.Status == TaskManager.Models.TaskStatus.Completed ? "btn-success" : "btn-outline-success") text-start">
+                                Завершена
+                            </button>
+                        </form>
+                    </div>
+                </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <div class="mb-3">
-                    <small class="text-muted fw-bold d-block mb-1">ВИКОНАВЕЦЬ</small>
-                    <div>👤 @(Model.Assignee?.Email ?? "Не призначено")</div>
-                </div>
-                <div>
-                    <small class="text-muted fw-bold d-block mb-1">АВТОР</small>
-                    <div>👤 @(Model.Creator?.Email ?? "Невідомо")</div>
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted fw-bold d-block mb-1">ВИКОНАВЕЦЬ</small>
+                            <div>👤 @(Model.Assignee?.Email ?? "Не призначено")</div>
+                        </div>
+                        <div>
+                            <small class="text-muted fw-bold d-block mb-1">АВТОР</small>
+                            <div>👤 @(Model.Creator?.Email ?? "Невідомо")</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>

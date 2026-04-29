@@ -24,4 +24,5 @@ public class TaskItem
     public ApplicationUser? Assignee { get; set; }
     public int ProjectId { get; set; }
     public Project? Project { get; set; }
+    public ICollection<TaskComment>? Comments { get; set; }
 }

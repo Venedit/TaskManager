@@ -12,5 +12,6 @@ namespace TaskManager.Services.Interfaces
         Task<bool> UnclaimTaskAsync(int taskId);
         Task<bool> UpdateTaskStatusAsync(int taskId, Models.TaskStatus newStatus);
         Task<bool> DeleteTaskAsync(int taskId, string userId);
+        Task<bool> RejectTaskWithCommentAsync(int taskId, string userId, string commentText);
     }
 }

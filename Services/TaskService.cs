@@ -31,6 +31,8 @@ namespace TaskManager.Services
                 .Include(t => t.Project)
                 .Include(t => t.Assignee)
                 .Include(t => t.Creator)
+                .Include(t => t.Comments!)
+                    .ThenInclude(c => c.Author)
                 .FirstOrDefaultAsync(t => t.Id == taskId);
         }
 
@@ -119,6 +121,28 @@ namespace TaskManager.Services
             }
 
             return false;
+        }
+        public async Task<bool> RejectTaskWithCommentAsync(int taskId, string userId, string commentText)
+        {
+            var task = await _context.Tasks.FindAsync(taskId);
+            if (task == null) return false;
+
+            var comment = new TaskComment
+            {
+                TaskId = taskId,
+                AuthorId = userId,
+                Text = commentText,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.TaskComments.Add(comment);
+
+
+            task.Status = Models.TaskStatus.InProgress;
+            _context.Update(task);
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
