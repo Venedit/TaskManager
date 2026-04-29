@@ -104,3 +104,24 @@ body {
   border-radius: 4px;
   font-weight: bold;
 }
+
+.kanban-card a {
+    display: block;
+    z-index: 1;
+}
+
+.kanban-card a:hover {
+    text-decoration: none;
+}
+
+.kanban-card form {
+    position: relative;
+    z-index: 2;
+}
+
+.app-body {
+    overflow: hidden;
+    height: 100vh;    
+    margin: 0;
+    padding: 0;
+}

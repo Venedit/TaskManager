@@ -130,6 +130,22 @@ namespace TaskManager.Services
             await _context.SaveChangesAsync();
             return true;
         }
-        
+        public async Task<bool> UpdateProjectAsync(Project project, string currentUserId)
+        {
+            var member = await _context.ProjectMembers
+                .FirstOrDefaultAsync(pm => pm.ProjectId == project.Id && pm.UserId == currentUserId);
+
+            if (member == null || member.Role != ProjectRole.Owner) return false;
+
+            var existingProject = await _context.Projects.FindAsync(project.Id);
+            if (existingProject == null) return false;
+
+            existingProject.Name = project.Name;
+            existingProject.Description = project.Description;
+
+            _context.Update(existingProject);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

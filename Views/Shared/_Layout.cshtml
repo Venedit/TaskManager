@@ -1,51 +1,109 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Microsoft.AspNetCore.Identity
+@using TaskManager.Models
+@using TaskManager.Services.Interfaces
+@* Підключаємо сервіси прямо у View *@
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IProjectService ProjectService
+
+<!DOCTYPE html>
+<html lang="uk">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TaskManager</title>
-    <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/TaskManager.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">TaskManager</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    
-                    @* ОСЬ ТУТ НАШЕ ОНОВЛЕНЕ МЕНЮ *@
-                    <ul class="navbar-nav flex-grow-1">
+
+<body class="@(SignInManager.IsSignedIn(User) ? "app-body" : "")">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        // Якщо юзер залогінений - отримуємо його проєкти для сайдбару
+        var userId = UserManager.GetUserId(User);
+        var myProjects = await ProjectService.GetUserProjectsAsync(userId!);
+
+        <div class="d-flex" style="height: 100vh; overflow: hidden;">
+            
+            <div class="bg-dark text-white d-flex flex-column shadow" style="width: 260px; flex-shrink: 0;">
+                
+                <div class="p-3 fs-5 fw-bold border-bottom border-secondary d-flex align-items-center">
+                    <span class="bg-primary text-white rounded px-2 me-2">✓</span>
+                    TaskManager
+                </div>
+                
+                <div class="p-3 flex-grow-1 overflow-auto">
+                    <small class="text-uppercase text-secondary fw-bold mb-2 d-block"
+                           style="font-size: 0.75rem;">Головне</small>
+                    <ul class="nav nav-pills flex-column mb-4">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Головна</a>
+                            <a class="nav-link text-white" asp-area="" asp-controller="Home" asp-action="Index">
+                                🏠 Мій простір
+                            </a>
                         </li>
                     </ul>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-uppercase text-secondary fw-bold" style="font-size: 0.75rem;">Мої проєкти</small>
+                        <a asp-controller="Projects" asp-action="Create"
+                           class="text-secondary text-decoration-none fs-5 lh-1" title="Новий проєкт">+</a>
+                    </div>
                     
-                    <partial name="_LoginPartial" />
+                    <ul class="nav nav-pills flex-column">
+                        @foreach (var proj in myProjects)
+                        {
+                            <li class="nav-item mb-1">
+                                @{
+                                    var isActive = ViewContext.RouteData.Values["id"]?.ToString() == proj.Id.ToString() ?
+    "bg-primary" : "";
+                                }
+                                <a class="nav-link text-white @isActive p-2 rounded" asp-controller="Projects"
+                                       asp-action="Details" asp-route-id="@proj.Id">
+                                    📁 @proj.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+                
+                <div class="p-3 border-top border-secondary mt-auto bg-darker">
+                    <div class="small mb-2 text-truncate text-secondary">Ввійшли як:</div>
+                    <div class="fw-bold mb-3 text-truncate">👤 @User.Identity?.Name</div>
+                    <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout"
+                          asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Вийти з системи</button>
+                    </form>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - TaskManager - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <div class="flex-grow-1 bg-light" style="overflow-y: auto;">
+                <main role="main" class="p-4 h-100">
+                    @RenderBody()
+                </main>
+            </div>
         </div>
-    </footer>
+    }
+    else
+    {
+        <header>
+            <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
+                <div class="container-fluid">
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">TaskManager</a>
+                </div>
+            </nav>
+        </header>
+        <div class="container mt-4">
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
+        </div>
+    }
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>

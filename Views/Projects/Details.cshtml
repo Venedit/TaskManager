@@ -1,216 +1,34 @@
 @model TaskManager.Models.Project
 @using Microsoft.AspNetCore.Identity
-@using TaskManager.Models
+@using Microsoft.EntityFrameworkCore.Infrastructure
 @inject UserManager<ApplicationUser> _userManager
-
 @{
     ViewData["Title"] = Model.Name;
     var role = (ProjectRole)ViewBag.UserRole;
+    var userId = _userManager.GetUserId(User);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h1>@Model.Name</h1>
+        <h2 class="fw-bold mb-0">@Model.Name</h2>
         <p class="text-muted">@Model.Description</p>
     </div>
     <div class="d-flex gap-2">
-        @* Тільки Owner бачить кнопку видалення проєкту *@
+        <a asp-controller="Tasks" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Нова задача
+        </a>
         @if (role == ProjectRole.Owner)
         {
-            <form asp-controller="Projects" asp-action="Delete" asp-route-id="@Model.Id" method="post"
-                  onsubmit="return confirm('УВАГА! Це назавжди видалить проєкт і ВСІ його задачі. Продовжити?');">
-                <button type="submit" class="btn btn-danger">Видалити проєкт</button>
-            </form>
-        }
-
-        @if (role == ProjectRole.Owner || role == ProjectRole.Manager)
-        {
-            <a asp-controller="Tasks" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-success">
-                + Додати задачу
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                ⚙️ Налаштування
             </a>
         }
     </div>
 </div>
 
-<div class="row">
-    @* Список задач проєкту *@
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Задачі проєкту</h5>
-            </div>
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Назва</th>
-                            <th>Статус</th>
-                            <th>Пріоритет</th>
-                            <th>Виконавець</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var task in Model.Tasks!)
-                        {
-                            <tr>
-                                <td>
-                                    <span class="fw-bold">@task.Title</span>
-                                </td>
-                                <td>
-                                    @* Логіка відображення статусів *@
-                                    @switch (task.Status)
-                                    {
-                                        case TaskManager.Models.TaskStatus.New:
-                                            <span class="badge bg-secondary">Нова</span>
-                                            break;
-                                        case TaskManager.Models.TaskStatus.InProgress:
-                                            <span class="badge bg-warning text-dark">В процесі</span>
-                                            break;
-                                        case TaskManager.Models.TaskStatus.Review:
-                                            <span class="badge bg-primary">Розгляд</span>
-                                            break;
-                                        case TaskManager.Models.TaskStatus.Completed:
-                                            <span class="badge bg-success">Виконано</span>
-                                            break;
-                                    }
-                                </td>
-                                <td>
-                                    @* Пріоритети теж можна розфарбувати *@
-                                    @switch (task.Priority)
-                                    {
-                                        case TaskManager.Models.TaskPriority.Urgent:
-                                            <span class="text-danger fw-bold">Високий</span>
-                                            break;
-                                        case TaskManager.Models.TaskPriority.Medium:
-                                            <span class="text-primary">Середній</span>
-                                            break;
-                                        case TaskManager.Models.TaskPriority.Low:
-                                            <span class="text-muted">Низький</span>
-                                            break;
-                                    }
-                                </td>
-                                <td>
-                                    @if (task.Assignee != null)
-                                    {
-                                        <div class="d-flex flex-column">
-                                            <span class="mb-1">👤 @task.Assignee.Email</span>
-            
-                                            @* Кнопки для того, хто виконує задачу *@
-                                            @if (User.Identity?.Name == task.Assignee.Email && task.Status ==
-                                                                                TaskManager.Models.TaskStatus.InProgress)
-                                            {
-                                                <div class="btn-group btn-group-sm">
-                                                    <form asp-controller="Tasks" asp-action="UpdateStatus" asp-route-id="@task.Id"
-                                                          asp-route-newStatus="Review" method="post">
-                                                        <button type="submit" class="btn btn-outline-primary">На перевірку</button>
-                                                    </form>
-                                                    <form asp-controller="Tasks" asp-action="Unclaim" asp-route-id="@task.Id"
-                                                          method="post">
-                                                        <button type="submit" class="btn btn-outline-danger">Відмовитися</button>
-                                                    </form>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <form asp-controller="Tasks" asp-action="Claim" asp-route-id="@task.Id" method="post">
-                                            <button type="submit" class="btn btn-sm btn-success">Взяти собі</button>
-                                        </form>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    @if (role == ProjectRole.Owner || role == ProjectRole.Manager || task.CreatorId ==
-                                                                    _userManager.GetUserId(User))
-                                    {
-                                        <div class="btn-group btn-group-sm">
-                                            <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@task.Id"
-                                               class="btn btn-outline-secondary">⚙️</a>
-            
-                                            <form asp-controller="Tasks" asp-action="Delete" asp-route-id="@task.Id"
-                                                  method="post"
-                                                  onsubmit="return confirm('Ви впевнені, що хочете видалити цю задачу?');">
-                                                <button type="submit" class="btn btn-outline-danger">🗑️</button>
-                                            </form>
-                                        </div>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    @* Список учасників проєкту *@
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between">
-                <h5 class="mb-0">Команда</h5>
-                @if (role == ProjectRole.Owner)
-                {
-                    <a asp-action="AddMember" asp-route-projectId="@Model.Id" class="btn btn-sm btn-outline-primary">+</a>
-                }
-            </div>
-            <ul class="list-group list-group-flush">
-                @if (Model.Members != null)
-                {
-                    @foreach (var m in Model.Members)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
-                                <span class="me-3">👤 @m.User?.Email</span>
-                    
-                                @* ЯКЩО ДИВИТЬСЯ OWNER І ЦЕ НЕ ВІН САМ - ДОЗВОЛЯЄМО ЗМІНУ РОЛІ *@
-                                @if (role == TaskManager.Models.ProjectRole.Owner && m.UserId != _userManager.GetUserId(User))
-                                {
-                                    <form asp-controller="Projects" asp-action="UpdateRole" method="post" class="m-0 p-0">
-                                        <input type="hidden" name="projectId" value="@Model.Id" />
-                                        <input type="hidden" name="userId" value="@m.UserId" />
-                                        @* onchange="this.form.submit()" відправляє форму одразу при виборі зі списку *@
-                                        <select name="newRole" class="form-select form-select-sm" onchange="this.form.submit()"
-                                                style="width: auto;">
-                                            @foreach (var item in Html.GetEnumSelectList<TaskManager.Models.ProjectRole>())
-                                            {
-                                                if (item.Value != ((int)TaskManager.Models.ProjectRole.Owner).ToString())
-                                                {
-                                                    if (item.Value == ((int)m.Role).ToString())
-                                                    {
-                                                        <option value="@item.Value" selected>@item.Text</option>
-                                                    }
-                                                    else
-                                                    {
-                                                        <option value="@item.Value">@item.Text</option>
-                                                    }
-                                                }
-                                            }
-                                        </select>
-                                    </form>
-                                }
-                                else
-                                {
-                                    @* ДЛЯ ВСІХ ІНШИХ (АБО ДЛЯ САМОГО ОВНЕРА) ПОКАЗУЄМО ПРОСТО БЕЙДЖ *@
-                                    <span class="badge bg-info">@m.Role</span>
-                                }
-                            </div>
-
-                            @* КНОПКА ВИДАЛЕННЯ (ТІЛЬКИ ДЛЯ ОВНЕРА І НЕ ДЛЯ СЕБЕ) *@
-                            @if (role == TaskManager.Models.ProjectRole.Owner && m.UserId != _userManager.GetUserId(User))
-                            {
-                                <form asp-controller="Projects" asp-action="RemoveMember" method="post"
-                                      onsubmit="return confirm('Ви впевнені, що хочете видалити цього користувача з проєкту?');">
-                                    <input type="hidden" name="projectId" value="@Model.Id" />
-                                    <input type="hidden" name="userId" value="@m.UserId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
-                                            title="Видалити з команди">✖</button>
-                                </form>
-                            }
-                        </li>
-                    }
-                }
-            </ul>
-        </div>
-    </div>
+<div class="kanban-board">
+    @await Html.PartialAsync("_KanbanColumn", (Model.Tasks, TaskManager.Models.TaskStatus.New, "Нові", "status-new"))
+    @await Html.PartialAsync("_KanbanColumn", (Model.Tasks, TaskManager.Models.TaskStatus.InProgress, "В роботі", "status-inprogress"))
+    @await Html.PartialAsync("_KanbanColumn", (Model.Tasks, TaskManager.Models.TaskStatus.Review, "На перевірці", "status-review"))
+    @await Html.PartialAsync("_KanbanColumn", (Model.Tasks, TaskManager.Models.TaskStatus.Completed, "Завершено", "status-completed"))
 </div>

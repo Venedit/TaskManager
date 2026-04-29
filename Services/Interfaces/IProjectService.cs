@@ -11,6 +11,6 @@ namespace TaskManager.Services.Interfaces
         Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role);
         Task<bool> RemoveMemberAsync(int projectId, string targetUserId, string currentUserId);
         Task<bool> UpdateMemberRoleAsync(int projectId, string targetUserId, ProjectRole newRole, string currentUserId);
-        
+        Task<bool> UpdateProjectAsync(Project project, string currentUserId);
     }
 }

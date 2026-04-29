@@ -27,14 +27,18 @@ namespace TaskManager.Services
 
         public async Task<TaskItem?> GetTaskByIdAsync(int taskId)
         {
-            return await _context.Tasks.FindAsync(taskId);
+            return await _context.Tasks
+                .Include(t => t.Project)
+                .Include(t => t.Assignee)
+                .Include(t => t.Creator)
+                .FirstOrDefaultAsync(t => t.Id == taskId);
         }
 
         public async Task CreateTaskAsync(TaskItem task)
         {
             task.CreatedAt = DateTime.UtcNow;
             task.Deadline = task.Deadline.ToUniversalTime();
-            
+
             _context.Add(task);
             await _context.SaveChangesAsync();
         }
@@ -44,7 +48,7 @@ namespace TaskManager.Services
             try
             {
                 task.Deadline = task.Deadline.ToUniversalTime();
-                task.CreatedAt = task.CreatedAt.ToUniversalTime(); 
+                task.CreatedAt = task.CreatedAt.ToUniversalTime();
                 _context.Update(task);
                 await _context.SaveChangesAsync();
                 return true;
@@ -68,7 +72,7 @@ namespace TaskManager.Services
 
             task.AssigneeId = userId;
             task.Status = Models.TaskStatus.InProgress;
-            
+
             _context.Update(task);
             await _context.SaveChangesAsync();
             return true;
@@ -81,7 +85,7 @@ namespace TaskManager.Services
 
             task.AssigneeId = null;
             task.Status = Models.TaskStatus.New;
-            
+
             _context.Update(task);
             await _context.SaveChangesAsync();
             return true;
@@ -93,7 +97,7 @@ namespace TaskManager.Services
             if (task == null) return false;
 
             task.Status = newStatus;
-            
+
             _context.Update(task);
             await _context.SaveChangesAsync();
             return true;

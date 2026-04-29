@@ -42,8 +42,8 @@ namespace TaskManager.Controllers
         public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority,AssigneeId,ProjectId")] TaskItem task)
         {
             var userId = _userManager.GetUserId(User);
-            if(userId == null) return Challenge();
-            
+            if (userId == null) return Challenge();
+
             task.CreatorId = userId;
             task.Status = Models.TaskStatus.New;
 
@@ -110,6 +110,14 @@ namespace TaskManager.Controllers
             return View(task);
         }
 
+        public async Task<IActionResult> Details(int id)
+        {
+            var task = await _taskService.GetTaskByIdAsync(id);
+            if (task == null) return NotFound();
+
+            return View(task);
+        }
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Claim(int id)
