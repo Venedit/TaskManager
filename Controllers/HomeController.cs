@@ -27,6 +27,7 @@ namespace TaskManager.Controllers
             if (User.Identity?.IsAuthenticated == true)
             {
                 var userId = _userManager.GetUserId(User);
+                if (userId == null) return NotFound();
 
                 ViewBag.Projects = await _projectService.GetUserProjectsAsync(userId);
                 

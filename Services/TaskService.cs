@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using TaskManager.Models;
 using TaskManager.Services.Interfaces;
 using TaskManager.Data;
+using TaskManager.ViewModels;
 
 namespace TaskManager.Services
 {
@@ -45,21 +46,33 @@ namespace TaskManager.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> UpdateTaskAsync(TaskItem task)
+        public async Task<bool> UpdateTaskAsync(TaskEditViewModel model, string currentUserId)
         {
-            try
-            {
-                task.Deadline = task.Deadline.ToUniversalTime();
-                task.CreatedAt = task.CreatedAt.ToUniversalTime();
-                _context.Update(task);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!_context.Tasks.Any(e => e.Id == task.Id)) return false;
-                throw;
-            }
+            var task = await _context.Tasks
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == model.Id);
+
+            if (task == null) return false;
+
+
+            var userRole = await _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == currentUserId)
+            .Select(pm => pm.Role)
+            .FirstOrDefaultAsync();
+
+            if(userRole != ProjectRole.Owner && userRole != ProjectRole.Manager) return false;
+
+
+            task.Title = model.Title;
+            task.Description = model.Description;
+            task.Deadline = model.Deadline.ToUniversalTime();
+            task.Priority = model.Priority;
+            task.Status = model.Status;
+            task.AssigneeId = model.AssigneeId;
+
+            _context.Update(task);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> ClaimTaskAsync(int taskId, string userId)
@@ -93,11 +106,18 @@ namespace TaskManager.Services
             return true;
         }
 
-        public async Task<bool> UpdateTaskStatusAsync(int taskId, Models.TaskStatus newStatus)
+        public async Task<bool> UpdateTaskStatusAsync(int taskId, string userId, Models.TaskStatus newStatus)
         {
             var task = await _context.Tasks.FindAsync(taskId);
             if (task == null) return false;
 
+            var userRole = await _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
+            .Select(pm => pm.Role)
+            .FirstOrDefaultAsync();
+
+            if (task.CreatorId != userId && task.AssigneeId != userId && userRole != ProjectRole.Owner && userRole != ProjectRole.Manager)
+                return false; 
             task.Status = newStatus;
 
             _context.Update(task);
@@ -136,7 +156,6 @@ namespace TaskManager.Services
             };
 
             _context.TaskComments.Add(comment);
-
 
             task.Status = Models.TaskStatus.InProgress;
             _context.Update(task);

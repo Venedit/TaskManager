@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using TaskManager.Models;
 using TaskManager.Services.Interfaces;
+using TaskManager.ViewModels;
 
 namespace TaskManager.Controllers
 {
@@ -38,7 +39,7 @@ namespace TaskManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority,AssigneeId,ProjectId")] TaskItem task)
+        public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority,AssigneeId,ProjectId")] TaskItem task)//
         {
             var userId = _userManager.GetUserId(User);
             if (userId == null) return Challenge();
@@ -73,40 +74,50 @@ namespace TaskManager.Controllers
             var task = await _taskService.GetTaskByIdAsync(id);
             if (task == null) return NotFound();
 
+            var model = new TaskEditViewModel
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                Deadline = task.Deadline,
+                Priority = task.Priority,
+                Status = task.Status,
+                AssigneeId = task.AssigneeId,
+                ProjectId = task.ProjectId
+            };
+            
             var project = await _projectService.GetProjectDetailsAsync(task.ProjectId);
             if (project != null && project.Members != null)
             {
                 ViewData["AssigneeId"] = new SelectList(project.Members.Select(m => m.User), "Id", "Email", task.AssigneeId);
             }
 
-            return View(task);
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Deadline,Priority,Status,CreatorId,AssigneeId,CreatedAt,ProjectId")] TaskItem task)
+        public async Task<IActionResult> Edit(int id, TaskEditViewModel model)
         {
-            if (id != task.Id) return NotFound();
-
-            ModelState.Remove("Creator");
-            ModelState.Remove("Project");
-            ModelState.Remove("Assignee");
+            if (id != model.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
-                var result = await _taskService.UpdateTaskAsync(task);
-                if (!result) return NotFound();
+                var userId = _userManager.GetUserId(User);
 
-                return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
+                var result = await _taskService.UpdateTaskAsync(model, userId!);
+
+                if (result)
+                {
+                    return RedirectToAction("Details", "Projects", new { id = model.ProjectId });
+                }
+
+                return Forbid();
             }
-
-            var project = await _projectService.GetProjectDetailsAsync(task.ProjectId);
-            if (project != null && project.Members != null)
-            {
-                ViewData["AssigneeId"] = new SelectList(project.Members.Select(m => m.User), "Id", "Email", task.AssigneeId);
-            }
-
-            return View(task);
+            var project = await _projectService.GetProjectDetailsAsync(model.ProjectId);
+            if (project == null) return NotFound();
+            ViewBag.AssigneeId = new SelectList(project.Members!.Select(m => m.User), "Id", "Email", model.AssigneeId);
+            return View(model);
         }
 
         public async Task<IActionResult> Details(int id)
@@ -141,9 +152,12 @@ namespace TaskManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStatus(int id, Models.TaskStatus newStatus)
+        public async Task<IActionResult> UpdateStatus(int id, Models.TaskStatus newStatus)//-------
         {
-            await _taskService.UpdateTaskStatusAsync(id, newStatus);
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return NotFound();
+            var result = await _taskService.UpdateTaskStatusAsync(id, userId, newStatus);
+            if (!result) return Forbid();
             var task = await _taskService.GetTaskByIdAsync(id);
             return RedirectToAction("Details", "Projects", new { id = task?.ProjectId });
         }

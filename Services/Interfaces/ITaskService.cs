@@ -1,4 +1,5 @@
 using TaskManager.Models;
+using TaskManager.ViewModels;
 
 namespace TaskManager.Services.Interfaces
 {
@@ -7,10 +8,10 @@ namespace TaskManager.Services.Interfaces
         Task<List<TaskItem>> GetUrgentTasksAsync(string userId, int count = 5);
         Task<TaskItem?> GetTaskByIdAsync(int taskId);
         Task CreateTaskAsync(TaskItem task);
-        Task<bool> UpdateTaskAsync(TaskItem task);
+        Task<bool> UpdateTaskAsync(TaskEditViewModel model, string currentUserId);
         Task<bool> ClaimTaskAsync(int taskId, string userId);
         Task<bool> UnclaimTaskAsync(int taskId);
-        Task<bool> UpdateTaskStatusAsync(int taskId, Models.TaskStatus newStatus);
+        Task<bool> UpdateTaskStatusAsync(int taskId, string userId, Models.TaskStatus newStatus);
         Task<bool> DeleteTaskAsync(int taskId, string userId);
         Task<bool> RejectTaskWithCommentAsync(int taskId, string userId, string commentText);
     }
