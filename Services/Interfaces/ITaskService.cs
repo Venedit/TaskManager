@@ -7,7 +7,7 @@ namespace TaskManager.Services.Interfaces
     {
         Task<List<TaskItem>> GetUrgentTasksAsync(string userId, int count = 5);
         Task<TaskItem?> GetTaskByIdAsync(int taskId);
-        Task CreateTaskAsync(TaskItem task);
+        Task<bool> CreateTaskAsync(TaskCreateViewModel model, string userId);
         Task<bool> UpdateTaskAsync(TaskEditViewModel model, string currentUserId);
         Task<bool> ClaimTaskAsync(int taskId, string userId);
         Task<bool> UnclaimTaskAsync(int taskId);

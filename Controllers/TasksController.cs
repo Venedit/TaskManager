@@ -39,34 +39,26 @@ namespace TaskManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Deadline,Priority,AssigneeId,ProjectId")] TaskItem task)//
+        public async Task<IActionResult> Create(TaskCreateViewModel model)
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Challenge();
-
-            task.CreatorId = userId;
-            task.Status = Models.TaskStatus.New;
-
-            ModelState.Remove("CreatorId");
-            ModelState.Remove("Creator");
-            ModelState.Remove("Project");
-            ModelState.Remove("Assignee");
-
             if (ModelState.IsValid)
             {
+                var userId = _userManager.GetUserId(User);
 
-                await _taskService.CreateTaskAsync(task);
-                return RedirectToAction("Details", "Projects", new { id = task.ProjectId });
+                var success = await _taskService.CreateTaskAsync(model, userId!);
+
+                if (success)
+                {
+                    return RedirectToAction("Details", "Projects", new { id = model.ProjectId });
+                }
+
+                return Forbid();
             }
 
-            var project = await _projectService.GetProjectDetailsAsync(task.ProjectId);
-            if (project != null && project.Members != null)
-            {
-                ViewData["AssigneeId"] = new SelectList(project.Members.Select(m => m.User), "Id", "Email", task.AssigneeId);
-            }
-
-            ViewBag.ProjectId = task.ProjectId;
-            return View(task);
+            var project = await _projectService.GetProjectDetailsAsync(model.ProjectId);
+            if (project == null) return NotFound();
+            ViewBag.AssigneeId = new SelectList(project.Members!.Select(m => m.User), "Id", "Email", model.AssigneeId);
+            return View(model);
         }
 
         public async Task<IActionResult> Edit(int id)
@@ -85,7 +77,7 @@ namespace TaskManager.Controllers
                 AssigneeId = task.AssigneeId,
                 ProjectId = task.ProjectId
             };
-            
+
             var project = await _projectService.GetProjectDetailsAsync(task.ProjectId);
             if (project != null && project.Members != null)
             {
@@ -152,12 +144,17 @@ namespace TaskManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStatus(int id, Models.TaskStatus newStatus)//-------
+        public async Task<IActionResult> UpdateStatus(int id, Models.TaskStatus newStatus)
         {
             var userId = _userManager.GetUserId(User);
-            if (userId == null) return NotFound();
-            var result = await _taskService.UpdateTaskStatusAsync(id, userId, newStatus);
-            if (!result) return Forbid();
+
+            var success = await _taskService.UpdateTaskStatusAsync(id, userId!, newStatus);
+
+            if (!success)
+            {
+                return Forbid();
+            }
+
             var task = await _taskService.GetTaskByIdAsync(id);
             return RedirectToAction("Details", "Projects", new { id = task?.ProjectId });
         }

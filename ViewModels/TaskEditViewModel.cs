@@ -20,10 +20,8 @@ namespace TaskManager.ViewModels
 
         public Models.TaskStatus Status { get; set; }
 
-        // Тільки ID виконавця, а не весь об'єкт ApplicationUser
         public string? AssigneeId { get; set; }
 
-        // Тільки ID проєкту, щоб знати, куди повернутись
         public int ProjectId { get; set; }
     }
 }

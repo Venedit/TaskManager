@@ -37,13 +37,30 @@ namespace TaskManager.Services
                 .FirstOrDefaultAsync(t => t.Id == taskId);
         }
 
-        public async Task CreateTaskAsync(TaskItem task)
+        public async Task<bool> CreateTaskAsync(TaskCreateViewModel model, string userId)
         {
-            task.CreatedAt = DateTime.UtcNow;
-            task.Deadline = task.Deadline.ToUniversalTime();
+            var isMember = await _context.ProjectMembers
+        .AnyAsync(pm => pm.ProjectId == model.ProjectId && pm.UserId == userId);
 
-            _context.Add(task);
+            if (!isMember) return false;
+
+            var task = new TaskItem
+            {
+                Title = model.Title,
+                Description = model.Description,
+                Deadline = model.Deadline,
+                Priority = model.Priority,
+                AssigneeId = model.AssigneeId,
+                ProjectId = model.ProjectId,
+
+                CreatorId = userId,
+                Status = Models.TaskStatus.New,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> UpdateTaskAsync(TaskEditViewModel model, string currentUserId)
@@ -60,7 +77,7 @@ namespace TaskManager.Services
             .Select(pm => pm.Role)
             .FirstOrDefaultAsync();
 
-            if(userRole != ProjectRole.Owner && userRole != ProjectRole.Manager) return false;
+            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager) return false;
 
 
             task.Title = model.Title;
@@ -112,14 +129,20 @@ namespace TaskManager.Services
             if (task == null) return false;
 
             var userRole = await _context.ProjectMembers
-            .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
-            .Select(pm => pm.Role)
-            .FirstOrDefaultAsync();
+                .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
+                .Select(pm => (ProjectRole?)pm.Role)
+                .FirstOrDefaultAsync();
 
-            if (task.CreatorId != userId && task.AssigneeId != userId && userRole != ProjectRole.Owner && userRole != ProjectRole.Manager)
-                return false; 
+            bool isCreator = task.CreatorId == userId;
+            bool isAssignee = task.AssigneeId == userId;
+            bool isProjectOwner = userRole == ProjectRole.Owner;
+
+            if (!isCreator && !isAssignee && !isProjectOwner)
+            {
+                return false;
+            }
+
             task.Status = newStatus;
-
             _context.Update(task);
             await _context.SaveChangesAsync();
             return true;

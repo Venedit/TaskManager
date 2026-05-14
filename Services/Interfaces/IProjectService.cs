@@ -1,4 +1,5 @@
 using TaskManager.Models;
+using TaskManager.ViewModels;
 
 namespace TaskManager.Services.Interfaces
 {
@@ -6,11 +7,11 @@ namespace TaskManager.Services.Interfaces
     {
         Task<List<Project>> GetUserProjectsAsync(string userId);
         Task<Project?> GetProjectDetailsAsync(int projectId);
-        Task CreateProjectAsync(Project project, string userId);
+        Task CreateProjectAsync(ProjectCreateViewModel model, string userId);
         Task<bool> DeleteProjectAsync(int projectId, string userId);
-        Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role);
+        Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role, string currentUserId);
         Task<bool> RemoveMemberAsync(int projectId, string targetUserId, string currentUserId);
         Task<bool> UpdateMemberRoleAsync(int projectId, string targetUserId, ProjectRole newRole, string currentUserId);
-        Task<bool> UpdateProjectAsync(Project project, string currentUserId);
+        Task<bool> UpdateProjectAsync(ProjectEditViewModel model, string currentUserId);
     }
 }

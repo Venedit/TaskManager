@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using TaskManager.Models;
+using TaskManager.ViewModels;
 using TaskManager.Services.Interfaces;
 
 namespace TaskManager.Controllers
@@ -36,14 +37,15 @@ namespace TaskManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Description")] Project project)
+        public async Task<IActionResult> Create(ProjectCreateViewModel model)
         {
-            if (!ModelState.IsValid) return View(project);
+            if (!ModelState.IsValid) return View(model);
 
             var userId = _userManager.GetUserId(User);
             if (userId == null) return Challenge();
 
-            await _projectService.CreateProjectAsync(project, userId);
+            await _projectService.CreateProjectAsync(model, userId);
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -68,17 +70,20 @@ namespace TaskManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMember(int projectId, string email, ProjectRole role)
         {
-            var result = await _projectService.AddMemberAsync(projectId, email, role);
+            var currentUserId = _userManager.GetUserId(User); // ДОДАНО
+
+            var result = await _projectService.AddMemberAsync(projectId, email, role, currentUserId!);
 
             if (!result)
             {
-                ModelState.AddModelError("", "Не вдалося додати користувача (не знайдено або вже у проєкті).");
+                ModelState.AddModelError("", "Не вдалося додати користувача. Або немає прав, або користувач не знайдений.");
                 ViewBag.ProjectId = projectId;
                 return View();
             }
 
             return RedirectToAction(nameof(Details), new { id = projectId });
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]

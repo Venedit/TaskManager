@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Models;
+using TaskManager.ViewModels;
 using TaskManager.Services.Interfaces;
 using TaskManager.Data;
 
@@ -27,27 +28,30 @@ namespace TaskManager.Services
         public async Task<Project?> GetProjectDetailsAsync(int projectId)
         {
             return await _context.Projects
-                .Include(p => p.Tasks!)
-                    .ThenInclude(t => t.Assignee)
-                .Include(p => p.Members!)
-                    .ThenInclude(m => m.User)
+                .Include(p => p.Tasks!).ThenInclude(t => t.Assignee)
+                .Include(p => p.Members!).ThenInclude(m => m.User)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(p => p.Id == projectId);
         }
-
-        public async Task CreateProjectAsync(Project project, string userId)
+        public async Task CreateProjectAsync(ProjectCreateViewModel model, string userId)
         {
-            project.CreatedAt = DateTime.UtcNow;
-            _context.Add(project);
-            await _context.SaveChangesAsync();
-
-            var member = new ProjectMember
+            var project = new Project
             {
-                ProjectId = project.Id,
-                UserId = userId,
-                Role = ProjectRole.Owner
+                Name = model.Name,
+                Description = model.Description,
+                CreatedAt = DateTime.UtcNow,
+
+                Members = new List<ProjectMember>
+                {
+                    new ProjectMember
+                    {
+                        UserId = userId,
+                        Role = ProjectRole.Owner
+                    }
+                }
             };
 
-            _context.Add(member);
+            _context.Projects.Add(project);
             await _context.SaveChangesAsync();
         }
 
@@ -66,8 +70,14 @@ namespace TaskManager.Services
             return true;
         }
 
-        public async Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role)
+        public async Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role, string currentUserId)
         {
+            var currentUserRole = await _context.ProjectMembers
+            .Where(pm => pm.ProjectId == projectId && pm.UserId == currentUserId)
+            .Select(pm => pm.Role)
+            .FirstOrDefaultAsync();
+
+            if (currentUserRole != ProjectRole.Owner && currentUserRole != ProjectRole.Manager) return false;
             var user = await _userManager.FindByEmailAsync(targetUserEmail);
             if (user == null) return false;
 
@@ -129,18 +139,18 @@ namespace TaskManager.Services
             await _context.SaveChangesAsync();
             return true;
         }
-        public async Task<bool> UpdateProjectAsync(Project project, string currentUserId)
+        public async Task<bool> UpdateProjectAsync(ProjectEditViewModel model, string currentUserId)
         {
             var member = await _context.ProjectMembers
-                .FirstOrDefaultAsync(pm => pm.ProjectId == project.Id && pm.UserId == currentUserId);
+                .FirstOrDefaultAsync(pm => pm.ProjectId == model.Id && pm.UserId == currentUserId);
 
             if (member == null || member.Role != ProjectRole.Owner) return false;
 
-            var existingProject = await _context.Projects.FindAsync(project.Id);
+            var existingProject = await _context.Projects.FindAsync(model.Id);
             if (existingProject == null) return false;
 
-            existingProject.Name = project.Name;
-            existingProject.Description = project.Description;
+            existingProject.Name = model.Name;
+            existingProject.Description = model.Description;
 
             _context.Update(existingProject);
             await _context.SaveChangesAsync();

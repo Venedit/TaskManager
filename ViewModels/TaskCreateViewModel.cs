@@ -3,10 +3,8 @@ using TaskManager.Models;
 
 namespace TaskManager.ViewModels
 {
-    class TaskCreateViewModel
+    public class TaskCreateViewModel
     {
-        public int Id { get; set; }
-
         [Required(ErrorMessage = "Назва обов'язкова")]
         [StringLength(100)]
         public string Title { get; set; } = string.Empty;
@@ -18,12 +16,10 @@ namespace TaskManager.ViewModels
 
         public TaskPriority Priority { get; set; }
 
-        public Models.TaskStatus Status { get; set; }
-
         public string? AssigneeId { get; set; }
 
-
+        [Required]
         public int ProjectId { get; set; }
     }
-    
+
 }
