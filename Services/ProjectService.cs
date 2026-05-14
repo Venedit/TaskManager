@@ -72,9 +72,10 @@ namespace TaskManager.Services
 
         public async Task<bool> AddMemberAsync(int projectId, string targetUserEmail, ProjectRole role, string currentUserId)
         {
+
             var currentUserRole = await _context.ProjectMembers
             .Where(pm => pm.ProjectId == projectId && pm.UserId == currentUserId)
-            .Select(pm => pm.Role)
+            .Select(pm => (ProjectRole?)pm.Role)
             .FirstOrDefaultAsync();
 
             if (currentUserRole != ProjectRole.Owner && currentUserRole != ProjectRole.Manager) return false;
@@ -102,9 +103,9 @@ namespace TaskManager.Services
             if (targetUserId == currentUserId) return false;
 
             var currentUserRole = await _context.ProjectMembers
-                .Where(pm => pm.ProjectId == projectId && pm.UserId == currentUserId)
-                .Select(pm => pm.Role)
-                .FirstOrDefaultAsync();
+            .Where(pm => pm.ProjectId == projectId && pm.UserId == currentUserId)
+            .Select(pm => (ProjectRole?)pm.Role)
+            .FirstOrDefaultAsync();
 
             if (currentUserRole != ProjectRole.Owner) return false;
 
@@ -124,7 +125,7 @@ namespace TaskManager.Services
 
             var currentUserRole = await _context.ProjectMembers
                 .Where(pm => pm.ProjectId == projectId && pm.UserId == currentUserId)
-                .Select(pm => pm.Role)
+                .Select(pm => (ProjectRole?)pm.Role)
                 .FirstOrDefaultAsync();
 
             if (currentUserRole != ProjectRole.Owner) return false;

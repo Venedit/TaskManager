@@ -117,6 +117,13 @@ namespace TaskManager.Controllers
             var task = await _taskService.GetTaskByIdAsync(id);
             if (task == null) return NotFound();
 
+            var userId = _userManager.GetUserId(User);
+            ViewBag.CurrentUserId = userId;
+
+            var project = await _projectService.GetProjectDetailsAsync(task.ProjectId);
+            var member = project?.Members?.FirstOrDefault(m => m.UserId == userId);
+            ViewBag.UserRole = member?.Role;
+
             return View(task);
         }
 

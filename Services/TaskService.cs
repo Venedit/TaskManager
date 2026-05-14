@@ -43,12 +43,11 @@ namespace TaskManager.Services
         .AnyAsync(pm => pm.ProjectId == model.ProjectId && pm.UserId == userId);
 
             if (!isMember) return false;
-
             var task = new TaskItem
             {
                 Title = model.Title,
                 Description = model.Description,
-                Deadline = model.Deadline,
+                Deadline = model.Deadline.ToUniversalTime(),
                 Priority = model.Priority,
                 AssigneeId = model.AssigneeId,
                 ProjectId = model.ProjectId,
@@ -57,6 +56,13 @@ namespace TaskManager.Services
                 Status = Models.TaskStatus.New,
                 CreatedAt = DateTime.UtcNow
             };
+
+            var userRole = await _context.ProjectMembers
+            .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
+            .Select(pm => pm.Role)
+            .FirstOrDefaultAsync();
+
+            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager && userRole != ProjectRole.Developer) return false;
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
@@ -77,7 +83,7 @@ namespace TaskManager.Services
             .Select(pm => pm.Role)
             .FirstOrDefaultAsync();
 
-            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager) return false;
+            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager && task.CreatorId != currentUserId) return false;
 
 
             task.Title = model.Title;
@@ -169,6 +175,17 @@ namespace TaskManager.Services
         {
             var task = await _context.Tasks.FindAsync(taskId);
             if (task == null) return false;
+
+            var userRole = await _context.ProjectMembers
+                .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
+                .Select(pm => (ProjectRole?)pm.Role)
+                .FirstOrDefaultAsync();
+
+            bool isCreator = task.CreatorId == userId;
+            bool isAssignee = task.AssigneeId == userId;
+            bool isProjectOwner = userRole == ProjectRole.Owner;
+
+            if (!isCreator && !isAssignee && !isProjectOwner) return false;
 
             var comment = new TaskComment
             {

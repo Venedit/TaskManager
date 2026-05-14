@@ -108,33 +108,47 @@ namespace TaskManager.Controllers
         // GET: /Projects/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
+
             var project = await _projectService.GetProjectDetailsAsync(id);
             if (project == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
             var member = project.Members?.FirstOrDefault(m => m.UserId == userId);
 
+
             if (member == null || member.Role != ProjectRole.Owner) return Forbid();
 
-            return View(project);
+            ViewBag.Members = project.Members;
+
+            var model = new ProjectEditViewModel
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description
+            };
+
+            return View(model);
         }
 
         // POST: /Projects/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description")] Project project)
+        public async Task<IActionResult> Edit(int id, ProjectEditViewModel model) // Змінено параметр
         {
-            if (id != project.Id) return NotFound();
+            if (id != model.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
                 var userId = _userManager.GetUserId(User);
-                var result = await _projectService.UpdateProjectAsync(project, userId!);
+
+                // У сервісі ти маєш перевірити, чи є userId власником моделі з model.Id,
+                // і оновити ТІЛЬКИ Name та Description
+                var result = await _projectService.UpdateProjectAsync(model, userId!);
 
                 if (!result) return Forbid();
-                return RedirectToAction(nameof(Details), new { id = project.Id });
+                return RedirectToAction(nameof(Details), new { id = model.Id });
             }
-            return View(project);
+            return View(model);
         }
 
     }
