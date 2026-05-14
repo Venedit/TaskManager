@@ -7,6 +7,7 @@
     
     bool canEdit = Model.CreatorId == currentUserId || userRole == ProjectRole.Owner || userRole == ProjectRole.Manager;
     bool canChangeStatus = Model.CreatorId == currentUserId || Model.AssigneeId == currentUserId || userRole == ProjectRole.Owner || userRole == ProjectRole.Manager;
+    bool canReview = Model.CreatorId == currentUserId || userRole == ProjectRole.Owner || userRole == ProjectRole.Manager;
 }
 <div class="mb-4">
     <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId"
@@ -69,7 +70,7 @@
                             <p class="text-muted small italic">Коментарів поки немає.</p>
                         }
 
-                        @if (Model.Status == TaskManager.Models.TaskStatus.Review)
+                        @if (Model.Status == TaskManager.Models.TaskStatus.Review && canReview)
                         {
                             <div class="card border-primary shadow-sm mt-4">
                                 <div class="card-header text-dark fw-bold">

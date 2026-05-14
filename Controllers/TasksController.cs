@@ -192,7 +192,7 @@ namespace TaskManager.Controllers
             var userId = _userManager.GetUserId(User);
             var result = await _taskService.RejectTaskWithCommentAsync(id, userId!, commentText);
 
-            if (!result) return NotFound();
+            if (!result) return Forbid();
 
             return RedirectToAction(nameof(Details), new { id });
         }

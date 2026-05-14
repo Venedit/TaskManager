@@ -75,7 +75,7 @@ namespace TaskManager.Services
             .FirstOrDefaultAsync(t => t.Id == model.Id);
 
             if (task == null) return false;
-            
+
             var userRole = await _context.ProjectMembers
             .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == currentUserId)
             .Select(pm => (ProjectRole?)pm.Role) 
@@ -179,11 +179,10 @@ namespace TaskManager.Services
                 .Select(pm => (ProjectRole?)pm.Role)
                 .FirstOrDefaultAsync();
 
-            bool isCreator = task.CreatorId == userId;
-            bool isAssignee = task.AssigneeId == userId;
-            bool isProjectOwner = userRole == ProjectRole.Owner;
 
-            if (!isCreator && !isAssignee && !isProjectOwner) return false;
+            bool isProjectRole = userRole == ProjectRole.Owner || userRole == ProjectRole.Manager;
+
+            if (!isProjectRole) return false;
 
             var comment = new TaskComment
             {
