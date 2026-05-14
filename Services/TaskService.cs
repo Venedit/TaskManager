@@ -39,10 +39,17 @@ namespace TaskManager.Services
 
         public async Task<bool> CreateTaskAsync(TaskCreateViewModel model, string userId)
         {
-            var isMember = await _context.ProjectMembers
-        .AnyAsync(pm => pm.ProjectId == model.ProjectId && pm.UserId == userId);
+            var userRole = await _context.ProjectMembers
+                .Where(pm => pm.ProjectId == model.ProjectId && pm.UserId == userId)
+                .Select(pm => (ProjectRole?)pm.Role)
+                .FirstOrDefaultAsync();
 
-            if (!isMember) return false;
+
+            if (userRole == null) return false;
+
+            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager && userRole != ProjectRole.Developer)
+                return false;
+
             var task = new TaskItem
             {
                 Title = model.Title,
@@ -51,18 +58,10 @@ namespace TaskManager.Services
                 Priority = model.Priority,
                 AssigneeId = model.AssigneeId,
                 ProjectId = model.ProjectId,
-
                 CreatorId = userId,
                 Status = Models.TaskStatus.New,
                 CreatedAt = DateTime.UtcNow
             };
-
-            var userRole = await _context.ProjectMembers
-            .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == userId)
-            .Select(pm => pm.Role)
-            .FirstOrDefaultAsync();
-
-            if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager && userRole != ProjectRole.Developer) return false;
 
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
@@ -76,11 +75,10 @@ namespace TaskManager.Services
             .FirstOrDefaultAsync(t => t.Id == model.Id);
 
             if (task == null) return false;
-
-
+            
             var userRole = await _context.ProjectMembers
             .Where(pm => pm.ProjectId == task.ProjectId && pm.UserId == currentUserId)
-            .Select(pm => pm.Role)
+            .Select(pm => (ProjectRole?)pm.Role) 
             .FirstOrDefaultAsync();
 
             if (userRole != ProjectRole.Owner && userRole != ProjectRole.Manager && task.CreatorId != currentUserId) return false;
