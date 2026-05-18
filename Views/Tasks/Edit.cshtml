@@ -9,7 +9,7 @@
 <hr />
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Edit">
+        <form asp-action="Edit" id ="editForm">
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="ProjectId" />
 
@@ -48,8 +48,16 @@
                 </div>
             </div>
             
-            <button type="submit" class="btn btn-primary">Зберегти зміни</button>
-            <button type="button" onclick="history.back()" class="btn btn-secondary">Скасувати</button>
         </form>
+        <div class="d-flex gap-2 mt-3">
+            
+            <button type="submit" form="editTaskForm" class="btn btn-primary">Зберегти зміни</button>
+            
+            <button type="button" onclick="history.back()" class="btn btn-secondary">Скасувати</button>
+            
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirm('Ви впевнені, що хочете видалити цей елемент?');">
+                <button type="submit" class="btn btn-danger">Видалити</button>
+            </form>
+        </div>
     </div>
 </div>
